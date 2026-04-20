@@ -87,5 +87,5 @@ linux:
 publish:
   provider: github
   owner: sumanurawat
-  repo: storyboarder-next
+  repo: friedmomo
   releaseType: release

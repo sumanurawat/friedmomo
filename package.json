@@ -1,8 +1,17 @@
 {
   "name": "storyboarder",
   "private": true,
-  "version": "0.2.0",
-  "description": "Storyboarder: conversation-first studio for text/comic storyboarding, low-cost rough cuts, and progressive film generation.",
+  "version": "0.1.0-beta",
+  "description": "Storyboarder: turn any idea into a complete 3-act storyboard in 90 seconds. Local desktop app, bring your own OpenRouter key.",
+  "homepage": "https://friedmomo.com",
+  "author": {
+    "name": "Friedmomo",
+    "url": "https://friedmomo.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sumanurawat/friedmomo.git"
+  },
   "type": "module",
   "main": "electron/main.js",
   "scripts": {

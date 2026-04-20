@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Storyboarder — turn any idea into a visual story</title>
+    <meta name="description" content="Type one sentence. Get a full visual storyboard. Free, lives on your laptop, no sign-up." />
+    <link rel="icon" type="image/png" href="icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="nav">
+      <a class="brand" href="/">
+        <img src="icon.png" alt="" width="36" height="36" />
+        <span><em>Storyboarder</em></span>
+      </a>
+      <nav>
+        <a href="#how">How it works</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/sumanurawat/friedmomo" target="_blank" rel="noopener">GitHub ↗</a>
+      </nav>
+    </header>
+
+    <main>
+      <!-- HERO -->
+      <section class="hero">
+        <h1>
+          Type <em>one sentence.</em><br />
+          Get a <em>visual story</em>.
+        </h1>
+        <p class="tagline">
+          Storyboarder turns an idea into a complete 8-panel storyboard — characters, locations,
+          every shot drawn, the whole three-act arc — in about 90 seconds.
+        </p>
+        <div class="cta-row">
+          <a class="cta primary" href="#install">Download free</a>
+          <a class="cta ghost" href="#how">See how it works</a>
+        </div>
+        <p class="cta-sub">For Mac · Windows · Linux. No sign-up. Runs on your laptop.</p>
+      </section>
+
+      <!-- EXAMPLE -->
+      <section class="example">
+        <div class="you-say">
+          <span class="label">You say:</span>
+          <p>"the boy who cried wolf"</p>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="you-get">
+          <span class="label">You get:</span>
+          <ul>
+            <li>✦ A three-act story called <em>Unheeded Child's Cry</em></li>
+            <li>✦ Characters: Peter, the Village Elder, the Wolf, the Villager Woman</li>
+            <li>✦ Locations: The Hillside Pasture, The Village, The Forest Edge</li>
+            <li>✦ 8 shot-ready panels — <em>Bored on the Hill</em>, <em>The First Cry</em>,
+              <em>Villagers Arrive</em>, <em>The Second Deception</em>, <em>Cold Shoulders in the Square</em>,
+              <em>Alone as the Sun Sets</em>, <em>The Wolf Emerges</em>,
+              <em>The Village That Does Not Come</em></li>
+            <li>✦ A generated image for every panel</li>
+          </ul>
+          <p class="tiny">…all before your coffee finishes brewing.</p>
+        </div>
+      </section>
+
+      <!-- HOW IT WORKS -->
+      <section id="how" class="how">
+        <h2>How it works</h2>
+        <ol class="steps">
+          <li>
+            <span class="step-n">1</span>
+            <h3>Download and open</h3>
+            <p>Pick your system below, install like any normal app, and open it up.</p>
+          </li>
+          <li>
+            <span class="step-n">2</span>
+            <h3>Connect once, use forever</h3>
+            <p>
+              Storyboarder needs access to an AI model to dream up your stories. On your first run,
+              the app walks you through getting a free key from
+              <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">OpenRouter</a> —
+              takes a minute. You pay them a few cents per story; we never see your stories or your money.
+            </p>
+          </li>
+          <li>
+            <span class="step-n">3</span>
+            <h3>Write your story</h3>
+            <p>
+              Type a sentence, a paragraph, a premise, or even just a classic title. Watch your
+              storyboard fill in — characters get designed, locations get painted, every panel gets
+              its own image. Then iterate in plain English: "make the wolf scarier", "swap in a
+              rainstorm", "reshoot the whole thing as stop-motion". It just works.
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <!-- DOWNLOADS -->
+      <section id="install" class="install">
+        <h2>Get Storyboarder</h2>
+        <p class="install-lede">
+          Free and in beta. Pick your system.
+        </p>
+
+        <div class="download-grid">
+          <a class="download-card" href="https://github.com/sumanurawat/friedmomo/releases/latest" data-os="mac">
+            <div class="os-icon"></div>
+            <div class="os-info">
+              <h3>Mac</h3>
+              <p>For MacBooks and iMacs (Intel or Apple Silicon). Universal DMG.</p>
+            </div>
+          </a>
+          <a class="download-card" href="https://github.com/sumanurawat/friedmomo/releases/latest" data-os="win">
+            <div class="os-icon"></div>
+            <div class="os-info">
+              <h3>Windows</h3>
+              <p>For Windows 10 and 11 (64-bit). Standard installer.</p>
+            </div>
+          </a>
+          <a class="download-card" href="https://github.com/sumanurawat/friedmomo/releases/latest" data-os="linux">
+            <div class="os-icon"></div>
+            <div class="os-info">
+              <h3>Linux</h3>
+              <p>For Ubuntu, Debian, Fedora and friends. AppImage and .deb.</p>
+            </div>
+          </a>
+        </div>
+
+        <!-- INSTALL HELP -->
+        <details class="install-help">
+          <summary>First time opening it? Read this.</summary>
+          <div class="help-body">
+            <p>
+              Storyboarder is a very new indie app. Your computer doesn't know us yet, so it'll
+              show a warning the <em>first time</em> you open it. This is normal. It only happens once.
+            </p>
+            <div class="help-grid">
+              <div>
+                <h4>On Mac</h4>
+                <ol>
+                  <li>Double-click the downloaded DMG.</li>
+                  <li>Drag the Storyboarder icon into your Applications folder.</li>
+                  <li><strong>Right-click</strong> the app icon in Applications and choose <strong>Open</strong>.
+                    (Double-clicking won't work the very first time.)</li>
+                  <li>You'll see "Apple cannot check this app for malicious software." That's the warning.
+                    Click <strong>Open</strong>.</li>
+                  <li>Done — the app opens. Next time, just double-click like any other app.</li>
+                </ol>
+              </div>
+              <div>
+                <h4>On Windows</h4>
+                <ol>
+                  <li>Run the downloaded installer.</li>
+                  <li>You'll see "Windows protected your PC."</li>
+                  <li>Click <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
+                  <li>Follow the installer prompts.</li>
+                  <li>Done — open it from your Start menu or desktop.</li>
+                </ol>
+              </div>
+              <div>
+                <h4>On Linux</h4>
+                <ol>
+                  <li>Download the <code>.AppImage</code> (or the <code>.deb</code> if you prefer).</li>
+                  <li>For AppImage: right-click → Properties → mark as executable. Double-click to run.</li>
+                  <li>For .deb: <code>sudo dpkg -i Storyboarder-*.deb</code>.</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <!-- PROMISE -->
+      <section class="promise">
+        <h2>What we promise</h2>
+        <ul class="promise-list">
+          <li>
+            <strong>Your stories stay yours.</strong>
+            Everything lives on your laptop. We don't host it, don't read it, don't have a database
+            of it. There's no Storyboarder server — the only network traffic is between your
+            computer and the AI model you chose, using your own key.
+          </li>
+          <li>
+            <strong>No subscription.</strong>
+            Storyboarder is free. You pay OpenRouter directly for whatever AI usage you do — usually
+            a few cents per story, sometimes free with their daily credits.
+          </li>
+          <li>
+            <strong>You can always leave.</strong>
+            Your stories are plain files in a folder called Storyboarder inside your home directory.
+            Back them up, open them in a text editor, email them to yourself. They're yours.
+          </li>
+        </ul>
+      </section>
+
+      <!-- FOOTER CTA -->
+      <section class="footer-cta">
+        <h2>Ready to draw a story?</h2>
+        <a class="cta primary big" href="#install">Download free →</a>
+        <p class="tiny">
+          Not ready yet? <a href="mailto:hello@friedmomo.com">Drop us an email</a> and we'll ping you
+          when the next version is out.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Made with care by <a href="https://friedmomo.com">Friedmomo</a>.
+        ·
+        <a href="https://github.com/sumanurawat/friedmomo" target="_blank" rel="noopener">Source on GitHub</a>
+        ·
+        <a href="privacy.html">Privacy</a>
+      </p>
+    </footer>
+
+    <script src="os-detect.js"></script>
+  </body>
+</html>

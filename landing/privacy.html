@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy — Storyboarder</title>
+    <link rel="icon" type="image/png" href="icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .privacy {
+        max-width: 720px;
+        margin: 4rem auto;
+        padding: 0 1.5rem;
+      }
+      .privacy h1 {
+        font-family: 'Instrument Serif', serif;
+        font-style: italic;
+        font-size: 2.6rem;
+        font-weight: 400;
+        background: linear-gradient(90deg, #fbbf24, #f97316);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        margin-bottom: 1rem;
+      }
+      .privacy h2 {
+        margin-top: 2rem;
+        font-size: 1.2rem;
+        color: #fbbf24;
+      }
+      .privacy p, .privacy li {
+        color: #cbd5e1;
+        line-height: 1.7;
+      }
+      .privacy strong { color: #f1f5f9; }
+    </style>
+  </head>
+  <body>
+    <header class="nav">
+      <a class="brand" href="/">
+        <img src="icon.png" alt="" width="36" height="36" />
+        <span><em>Storyboarder</em></span>
+      </a>
+      <nav>
+        <a href="index.html">← Back</a>
+      </nav>
+    </header>
+
+    <section class="privacy">
+      <h1>Privacy</h1>
+      <p>
+        This is the whole thing: <strong>Storyboarder runs on your computer. Your stories don't leave it.</strong>
+      </p>
+
+      <h2>What stays local</h2>
+      <ul>
+        <li>Every storyboard you make</li>
+        <li>Every character and location you create</li>
+        <li>Every image the app generates</li>
+        <li>Your OpenRouter API key</li>
+        <li>Your chat history with the assistant</li>
+      </ul>
+      <p>
+        All of this lives in a folder called <strong>Storyboarder</strong> inside your home directory.
+        You can back it up, open the files in a text editor, or copy them to another computer. They're yours.
+      </p>
+
+      <h2>What touches the network</h2>
+      <p>
+        When you ask Storyboarder to write something or generate an image, the app sends your
+        prompt from your computer <strong>directly to OpenRouter's servers</strong> (the AI platform
+        you set up during first-run). It does this using your API key. We don't run any server in between.
+      </p>
+      <p>
+        That means OpenRouter sees your prompts — the same way they would if you used the OpenRouter
+        website directly. Their privacy policy is at
+        <a href="https://openrouter.ai/privacy" target="_blank" rel="noopener" style="color:#fbbf24;">openrouter.ai/privacy</a>.
+      </p>
+
+      <h2>What we don't collect</h2>
+      <p>
+        We don't have analytics. We don't have crash reporting. We don't have a login. We don't
+        have a database. The Storyboarder app doesn't phone home to friedmomo.com for any reason,
+        ever.
+      </p>
+      <p>
+        The only exception is the <em>update check</em> — once per app launch, the app asks
+        GitHub "is there a new version?" and GitHub responds yes or no. This is standard for
+        apps that auto-update, and GitHub sees your IP address during that request.
+      </p>
+
+      <h2>If you email us</h2>
+      <p>
+        If you send us an email, we'll see your email address and whatever you said. We keep that
+        message only long enough to reply, unless you explicitly ask to be added to an update list.
+      </p>
+
+      <h2>Questions</h2>
+      <p>
+        Email <a href="mailto:hello@friedmomo.com" style="color:#fbbf24;">hello@friedmomo.com</a>
+        and we'll answer.
+      </p>
+
+      <p style="margin-top: 3rem; font-size: 0.82rem; color: #64748b;">
+        Last updated: April 2026.
+      </p>
+    </section>
+
+    <footer>
+      <p>
+        Made with care by <a href="https://friedmomo.com">Friedmomo</a>.
+        ·
+        <a href="https://github.com/sumanurawat/friedmomo" target="_blank" rel="noopener">Source on GitHub</a>
+      </p>
+    </footer>
+  </body>
+</html>
