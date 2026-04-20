@@ -1,0 +1,91 @@
+appId: com.storyboarder.app
+productName: Storyboarder
+copyright: "© 2026 Storyboarder"
+
+directories:
+  buildResources: build
+  output: release
+
+# Files bundled inside the app's asar archive. We INCLUDE:
+#   - electron/   (main process)
+#   - package.json (for app.getName / version resolution)
+# We EXCLUDE everything else from asar because 'server/' and 'dist/' need
+# to be read by a child Node process, which can't read from asar cleanly.
+# They ride along via extraResources instead.
+files:
+  - electron/**
+  - package.json
+  - "!**/*.md"
+  - "!**/*.map"
+
+# 'server/' runs as a child process and must be real files on disk.
+# 'dist/' is served by the server — also real files.
+# node_modules are only needed by server/, so include just what server uses.
+# server/index.js currently has ZERO third-party deps (pure Node built-ins),
+# so we don't need to ship node_modules with it.
+extraResources:
+  - from: server
+    to: server
+    filter:
+      - "**/*"
+  - from: dist
+    to: dist
+    filter:
+      - "**/*"
+
+# --- macOS ---
+mac:
+  category: public.app-category.graphics-design
+  target:
+    - target: dmg
+      arch:
+        - universal  # single binary for both Intel + Apple Silicon
+  hardenedRuntime: false       # disable until we have Apple Developer signing
+  gatekeeperAssess: false
+  identity: null               # null -> ad-hoc signing (free, no Apple ID)
+  # Later, set identity to your Developer ID and flip hardenedRuntime: true.
+
+dmg:
+  title: "Storyboarder ${version}"
+  icon: null
+  contents:
+    - x: 140
+      y: 190
+      type: file
+    - x: 400
+      y: 190
+      type: link
+      path: /Applications
+
+# --- Windows ---
+win:
+  target:
+    - target: nsis
+      arch: x64
+  signAndEditExecutable: false
+
+nsis:
+  oneClick: false              # show install wizard so users pick install path
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Storyboarder
+
+# --- Linux ---
+linux:
+  category: Graphics
+  target:
+    - target: AppImage
+      arch: x64
+    - target: deb
+      arch: x64
+
+# --- Auto-update publishing ---
+# electron-builder will publish releases to GitHub Releases when we run
+# `npm run release`. On first run you need GH_TOKEN set with repo scope.
+publish:
+  provider: github
+  owner: sumanurawat
+  repo: storyboarder-next
+  releaseType: release
