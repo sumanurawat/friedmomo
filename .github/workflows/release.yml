@@ -1,0 +1,60 @@
+name: Build + publish release
+
+# Runs whenever you push a version tag like v0.1.0 or v0.2.0-beta. Each matrix
+# job builds Storyboarder for its host platform and uses electron-builder's
+# `--publish always` mode to upload artefacts directly to the GitHub Release
+# that matches the tag. The release is created/updated automatically.
+#
+# You can also kick this off by hand from the Actions tab (workflow_dispatch)
+# if something failed partway.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write    # needed for electron-builder to create the release
+
+jobs:
+  build:
+    name: Build ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform-flag: --mac
+            label: macOS
+          - os: windows-latest
+            platform-flag: --win
+            label: Windows
+          - os: ubuntu-latest
+            platform-flag: --linux
+            label: Linux
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Vite frontend
+        run: npm run build
+
+      - name: Build + publish Electron app (${{ matrix.label }})
+        env:
+          # electron-builder looks for GH_TOKEN when publishing to GitHub
+          # Releases. Actions provides GITHUB_TOKEN automatically; we just
+          # expose it under the name electron-builder expects.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder ${{ matrix.platform-flag }} --config build/electron-builder.yml --publish always
