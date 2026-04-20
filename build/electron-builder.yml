@@ -2,6 +2,14 @@ appId: com.storyboarder.app
 productName: Storyboarder
 copyright: "© 2026 Storyboarder"
 
+# Version-less artifact names so the landing-page download URLs remain stable
+# across releases:
+#   https://github.com/.../releases/latest/download/Storyboarder-mac.dmg
+# GitHub resolves "latest" to whichever release is newest, and because the
+# filename is fixed, the link never breaks. Per-release metadata (version,
+# arch) still lives inside the app itself; we just don't put it in the filename.
+artifactName: "${productName}-${os}.${ext}"
+
 directories:
   buildResources: build
   output: release
