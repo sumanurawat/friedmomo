@@ -151,6 +151,14 @@ export async function sendMessage({ model, systemPrompt, messages, onToken, onDo
         model: resolvedModel,
         messages: buildOpenAIMessages(systemPrompt, messages),
         stream: true,
+        // Force structured JSON output. The system prompt already says
+        // "Return valid JSON ONLY" but the rule is unenforceable without
+        // this flag — models sometimes emit a prose summary instead, which
+        // the parser then treats as chat with zero updates, leaving the
+        // default storyboard scaffold untouched and the user staring at an
+        // empty board. OpenRouter passes this through to every provider;
+        // models that don't natively support JSON mode get it emulated.
+        response_format: { type: 'json_object' },
       }),
     });
 

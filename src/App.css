@@ -1167,9 +1167,18 @@
   border: 1px solid rgba(251, 191, 36, 0.4);
   border-radius: 12px;
   background: rgba(251, 191, 36, 0.12);
-  /* Stick at the bottom of the scroll container */
-  margin-top: auto;
   flex-shrink: 0;
+  /* Pin to the bottom of the scroll viewport so the running signal stays
+     visible even when the user scrolls up to reread earlier messages. The
+     backdrop blur + top shadow give it a "frosted glass over scrolling
+     content" feel so chat text doesn't bleed through during a long run. */
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  z-index: 2;
+  box-shadow: 0 -10px 22px rgba(11, 18, 32, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 /* Breathing pulse so the user can always tell the stream is alive —
@@ -1483,6 +1492,29 @@
 .sb-send-btn {
   white-space: nowrap;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Inline spinner for the Send button — visible while isSending is true so
+   there's always a running signal in the compose area even if the banner
+   is off-screen. Deliberately small and white-ish to read cleanly inside
+   the amber primary button. */
+.sb-send-btn .sb-btn-spinner {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.6px solid rgba(17, 24, 39, 0.22);
+  border-top-color: rgba(17, 24, 39, 0.92);
+  animation: sb-btn-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes sb-btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .sb-chat-mode-toggle {

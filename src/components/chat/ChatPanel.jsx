@@ -334,6 +334,7 @@ export default function ChatPanel({
             disabled={isSending || !input.trim()}
             title={!input.trim() && !isSending ? 'Type a message first' : undefined}
           >
+            {isSending ? <span className="sb-btn-spinner" aria-hidden="true" /> : null}
             {isStreaming ? 'Drafting…' : isSending ? 'Rendering…' : 'Send'}
           </button>
         </div>

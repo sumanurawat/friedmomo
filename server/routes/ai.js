@@ -86,7 +86,15 @@ export async function handleAI(ctx) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
         },
-        body: JSON.stringify({ model, messages: oaiMessages, stream: true }),
+        body: JSON.stringify({
+          model,
+          messages: oaiMessages,
+          stream: true,
+          // Force JSON output so the model can't fall back to prose-only
+          // replies that produce zero updates. See ai-direct.js for the
+          // equivalent on the web path.
+          response_format: { type: 'json_object' },
+        }),
       });
 
       logger.info('ai.chat.upstream_headers', {

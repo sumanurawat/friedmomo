@@ -1964,6 +1964,33 @@ export const useProjectStore = create((set, get) => ({
           baseProject.storyboard,
           baseProject.entities
         );
+
+        // Diagnostic trace — dumped to console on every chat completion so that
+        // "AI claims it did the work but nothing lands" regressions are
+        // immediately visible. Log budget is small (under 1 KB) — safe to leave
+        // on in production. If the counts object is all zeros, the model
+        // returned prose instead of structured updates and the storyboard
+        // stayed at whatever scaffold/state it was in before.
+        console.info('[Storyboarder] chat response parsed', {
+          model: settings.planningModel,
+          rawBytes: fullText.length,
+          chatPreview: (parsed.chat || '').slice(0, 120),
+          updateKeys: Object.keys(parsed.updates || {}),
+          counts: {
+            outlineActs: parsed.updates?.story_outline?.acts?.length || 0,
+            charactersAdd: parsed.updates?.characters_add?.length || 0,
+            charactersUpdate: parsed.updates?.characters_update?.length || 0,
+            locationsAdd: parsed.updates?.locations_add?.length || 0,
+            locationsUpdate: parsed.updates?.locations_update?.length || 0,
+            scenesAdd: parsed.updates?.scenes_add?.length || 0,
+            scenesUpdate: parsed.updates?.scenes_update?.length || 0,
+            sequencesAdd: parsed.updates?.sequences_add?.length || 0,
+            sequencesUpdate: parsed.updates?.sequences_update?.length || 0,
+          },
+          rawHead: fullText.slice(0, 200),
+          rawTail: fullText.slice(-200),
+        });
+
         const updates = enforceSceneMutationPolicy(baseProject.storyboard, parsed.updates || {}, {
           editSceneId: extractSceneEditId(apiContent),
           chatMode,
