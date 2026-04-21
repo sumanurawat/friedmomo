@@ -28,7 +28,8 @@ const STREAM_CONNECT_TIMEOUT_MS = 60_000;
 const IMAGE_TIMEOUT_MS = 180_000;
 
 // Title calls are hard-locked to a cheap model, same as the backend.
-const TITLE_MODEL = 'google/gemini-2.5-flash-lite';
+// Keep in sync with server/routes/ai.js and DEFAULT_TITLE_MODEL in providers.js.
+const TITLE_MODEL = 'google/gemini-3.1-flash-lite-preview';
 
 function makeClientRequestId() {
   try {

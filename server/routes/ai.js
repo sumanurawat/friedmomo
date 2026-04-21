@@ -32,7 +32,8 @@ const VALIDATE_KEY_ENDPOINTS = {
 // opt the title call into an expensive planner model. Change the constants
 // here if you want a different cheap/free title model.
 const TITLE_PROVIDER = 'openrouter';
-const TITLE_MODEL = 'google/gemini-2.5-flash-lite';
+// Keep in sync with src/services/ai-direct.js and DEFAULT_TITLE_MODEL in providers.js.
+const TITLE_MODEL = 'google/gemini-3.1-flash-lite-preview';
 
 async function getApiKey(provider) {
   const settings = await store.loadSettings();

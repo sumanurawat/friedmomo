@@ -4,9 +4,41 @@ import { createPortal } from 'react-dom';
 import MessageBubble from './MessageBubble.jsx';
 import { confirm as confirmDialog } from '../../store/dialog-store.js';
 
+// Map the granular phase identifiers that the project store emits (via
+// derivePhaseFromStream) to short, user-facing pill labels. Shown inline in
+// the processing banner so even during the silent structured-JSON phase the
+// user can see which section the planner is writing.
+const PHASE_PILL_LABEL = {
+  planning: 'Planning',
+  drafting: 'Drafting',
+  outline: 'Outline',
+  scenes_add: 'Scenes',
+  characters_add: 'Cast',
+  characters_update: 'Cast',
+  locations_add: 'World',
+  locations_update: 'World',
+  panels_add: 'Panels',
+  panels_update: 'Panels',
+  rendering: 'Rendering',
+};
+
+// Format a raw character count into something the user can glance at:
+// under 1 KB  → "412 chars"
+// over 1 KB   → "4.2 KB"
+// Used only to signal that the stream is alive — exact precision doesn't
+// matter, motion does.
+function formatStreamSize(chars) {
+  const n = Number(chars) || 0;
+  if (n <= 0) return '';
+  if (n < 1024) return `${n} chars`;
+  const kb = n / 1024;
+  return `${kb >= 10 ? Math.round(kb) : kb.toFixed(1)} KB`;
+}
+
 export default function ChatPanel({
   messages,
   streamingText,
+  streamedChars = 0,
   isStreaming,
   isSending,
   processingStatus,
@@ -48,15 +80,15 @@ export default function ChatPanel({
     return safe;
   }, [messages, isStreaming, streamingText]);
 
-  // Phase tag shown inline in the banner
-  const phaseLabel =
-    processingPhase === 'planning'
-      ? 'Planning'
-      : processingPhase === 'drafting'
-        ? 'Drafting'
-        : processingPhase === 'rendering'
-          ? 'Rendering'
-          : null;
+  // Phase tag shown inline in the banner. Covers every phase the planner
+  // stream can surface (see derivePhaseFromStream in project-store.js) so
+  // the user always has a short label matching the current section.
+  const phaseLabel = PHASE_PILL_LABEL[processingPhase] || null;
+
+  // Live byte counter — empty string during non-streaming phases so the
+  // banner stays clean once the response has landed and image rendering
+  // takes over.
+  const streamSizeLabel = isStreaming ? formatStreamSize(streamedChars) : '';
 
   // Auto-scroll when new messages arrive or banner appears/disappears
   useEffect(() => {
@@ -182,13 +214,16 @@ export default function ChatPanel({
         ))}
 
         {isSending ? (
-          <div className="sb-processing-banner" role="status" aria-live="polite">
+          <div className="sb-processing-banner is-alive" role="status" aria-live="polite">
             <div className="sb-spinner" />
             <div className="sb-processing-copy">
               <strong>
                 {processingStatus || 'Working on your storyboard…'}
                 {phaseLabel
                   ? <span className="sb-processing-phase-tag">{phaseLabel}</span>
+                  : null}
+                {streamSizeLabel
+                  ? <span className="sb-processing-bytes" title="Total bytes streamed from the planner so far">{streamSizeLabel}</span>
                   : null}
               </strong>
               <small>

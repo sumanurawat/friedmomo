@@ -648,6 +648,7 @@ export default function App() {
   const chatProps = {
     messages: activeProject?.messages || [],
     streamingText: projectStore.streamingText,
+    streamedChars: projectStore.streamedChars,
     isStreaming: projectStore.isStreaming,
     isSending: projectStore.isSending,
     processingStatus: projectStore.processingStatus,

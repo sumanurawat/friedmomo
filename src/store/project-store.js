@@ -1436,6 +1436,11 @@ export const useProjectStore = create((set, get) => ({
   selectedSceneId: null,
   isStreaming: false,
   streamingText: '',
+  // Raw character count of what the model has streamed so far. Surfaced in
+  // the chat panel's processing banner so users can see the stream is alive
+  // even while the model is emitting structured JSON (which we hide from the
+  // chat view). Resets to 0 at the start of each new request.
+  streamedChars: 0,
   isSending: false,
   processingStatus: '',
   processingPhase: 'idle',
@@ -1500,6 +1505,7 @@ export const useProjectStore = create((set, get) => ({
       activeProject: project,
       selectedSceneId: null,
       streamingText: '',
+      streamedChars: 0,
       isStreaming: false,
       isSending: false,
       processingStatus: '',
@@ -1574,6 +1580,7 @@ export const useProjectStore = create((set, get) => ({
       activeProject: nextProject,
       selectedSceneId: null,
       streamingText: '',
+      streamedChars: 0,
       isStreaming: false,
       isSending: false,
       processingStatus: '',
@@ -1640,6 +1647,7 @@ export const useProjectStore = create((set, get) => ({
       activeProject: nextProject,
       isStreaming: false,
       streamingText: '',
+      streamedChars: 0,
       isSending: false,
       processingStatus: '',
       processingPhase: 'idle',
@@ -1771,6 +1779,7 @@ export const useProjectStore = create((set, get) => ({
       set({
         activeProject: errorProject,
         streamingText: '',
+        streamedChars: 0,
         isStreaming: false,
         isSending: false,
         processingStatus: '',
@@ -1807,9 +1816,10 @@ export const useProjectStore = create((set, get) => ({
       isStreaming: true,
       isSending: true,
       streamingText: '',
+      streamedChars: 0,
       processingStatus: 'Planning storyboard...',
       processingPhase: 'planning',
-      processingDetail: 'Sending your prompt to Gemini and mapping the next storyboard changes.',
+      processingDetail: 'Connecting to the planner and mapping the next storyboard changes.',
       sceneDiffById: {},
     });
 
@@ -1837,6 +1847,7 @@ export const useProjectStore = create((set, get) => ({
         const phase = derivePhaseFromStream(fullText, partialChat);
         set({
           streamingText: partialChat,
+          streamedChars: fullText.length,
           processingStatus: phase.status,
           processingPhase: phase.phase,
           processingDetail: phase.detail,
@@ -1886,6 +1897,7 @@ export const useProjectStore = create((set, get) => ({
           projectIndex: textReadyIndex,
           isStreaming: false,
           streamingText: '',
+          streamedChars: 0,
           isSending: shouldGenerateImages,
           processingStatus: shouldGenerateImages ? 'Generating scene previews...' : '',
           processingPhase: shouldGenerateImages ? 'rendering' : 'idle',
@@ -1956,6 +1968,7 @@ export const useProjectStore = create((set, get) => ({
           projectIndex: index,
           isStreaming: false,
           streamingText: '',
+          streamedChars: 0,
           isSending: false,
           processingStatus: '',
           processingPhase: 'idle',
@@ -1988,6 +2001,7 @@ export const useProjectStore = create((set, get) => ({
             activeProject: baseProject,
             isStreaming: false,
             streamingText: '',
+            streamedChars: 0,
             isSending: false,
             processingStatus: '',
             processingPhase: 'idle',
@@ -2011,6 +2025,7 @@ export const useProjectStore = create((set, get) => ({
           projectIndex: index,
           isStreaming: false,
           streamingText: '',
+          streamedChars: 0,
           isSending: false,
           processingStatus: '',
           processingPhase: 'idle',
