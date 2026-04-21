@@ -362,6 +362,12 @@
   font-size: 0.72rem;
 }
 
+.sb-section-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .sb-view-toggle {
   display: inline-grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

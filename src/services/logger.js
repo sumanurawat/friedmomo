@@ -15,6 +15,8 @@
  *   - Session id + sequence number attached to every entry for ordering.
  */
 
+import { IS_WEB } from './platform.js';
+
 const SESSION_ID = (() => {
   try {
     const existing = sessionStorage.getItem('sb-session-id');
@@ -45,6 +47,15 @@ async function flush() {
   if (flushing || queue.length === 0) return;
   flushing = true;
   const batch = queue.splice(0, MAX_BATCH);
+
+  // In the web build there is no /api/log endpoint. The console has already
+  // captured every event via emit(); just discard the batch so the queue
+  // doesn't grow forever.
+  if (IS_WEB) {
+    flushing = false;
+    return;
+  }
+
   try {
     const res = await fetch('/api/log', {
       method: 'POST',
@@ -136,6 +147,9 @@ export function installGlobalErrorHandlers() {
   });
 
   // Flush remaining events on tab close — keepalive fetch allows this.
+  // In the web build there is no /api/log endpoint, so skip.
+  if (IS_WEB) return;
+
   window.addEventListener('pagehide', () => {
     if (queue.length === 0) return;
     try {

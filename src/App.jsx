@@ -9,6 +9,7 @@ import { validateKey } from './services/ai-client.js';
 import { generateImage, humanizeError } from './services/ai-client.js';
 import { buildFallbackStoryboardFrame, buildSceneImagePrompt } from './services/scene-images.js';
 import { saveImage, resolveImagePath, getActiveUserId } from './services/storage.js';
+import { downloadProjectBundle, pickAndImportProjectBundle } from './services/project-io.js';
 import { exportStoryboardToPdf } from './services/pdf-export.js';
 import { useProjectStore } from './store/project-store.js';
 import { useSettingsStore } from './store/settings-store.js';
@@ -610,6 +611,26 @@ export default function App() {
     },
     onRename: (projectId, name) => {
       projectStore.renameProjectById(projectId, name);
+    },
+    onExport: async (projectId) => {
+      try {
+        const filename = await downloadProjectBundle(projectId);
+        setToast({ type: 'success', message: `Exported as ${filename}` });
+      } catch (err) {
+        setToast({ type: 'error', message: err?.message || 'Export failed.' });
+      }
+    },
+    onImport: async () => {
+      try {
+        const newProjectId = await pickAndImportProjectBundle();
+        if (!newProjectId) return;
+        // Pull the fresh index so the imported story shows up in the sidebar.
+        await projectStore.refreshProjectIndex?.();
+        await projectStore.switchProject(newProjectId);
+        setToast({ type: 'success', message: 'Story imported.' });
+      } catch (err) {
+        setToast({ type: 'error', message: err?.message || 'Import failed.' });
+      }
     },
   };
 

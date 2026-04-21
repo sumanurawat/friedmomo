@@ -1,10 +1,16 @@
-name: Deploy landing page to GitHub Pages
+name: Deploy landing + web app to GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
       - 'landing/**'
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.js'
       - '.github/workflows/deploy-landing.yml'
   # Let us trigger it manually from the Actions tab too.
   workflow_dispatch:
@@ -30,13 +36,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app (PWA)
+        env:
+          VITE_STORYBOARDER_MODE: web
+        run: npm run build:web
+
+      - name: Assemble Pages payload (landing/ + app/)
+        run: |
+          # Single upload directory: marketing page at root, web app under
+          # /app/. CNAME from landing/ provides the custom domain.
+          mkdir -p _site
+          cp -R landing/. _site/
+          mkdir -p _site/app
+          cp -R dist-web/. _site/app/
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload landing/ as Pages artifact
+      - name: Upload assembled site as Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./landing
+          path: ./_site
 
       - name: Deploy to GitHub Pages
         id: deployment

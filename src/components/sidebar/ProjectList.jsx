@@ -8,6 +8,8 @@ export default function ProjectList({
   isCreating,
   onDelete,
   onRename,
+  onExport,
+  onImport,
 }) {
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [editingName, setEditingName] = useState('');
@@ -21,9 +23,21 @@ export default function ProjectList({
     <section className="sb-project-list">
       <header className="sb-section-head">
         <h3>Stories</h3>
-        <button type="button" className="sb-btn sb-btn-xs sb-btn-primary" onClick={onCreate} disabled={isCreating}>
-          {isCreating ? 'Creating...' : 'New'}
-        </button>
+        <div className="sb-section-actions">
+          {onImport ? (
+            <button
+              type="button"
+              className="sb-btn sb-btn-xs"
+              onClick={onImport}
+              title="Import a .storyboard.json file"
+            >
+              Import
+            </button>
+          ) : null}
+          <button type="button" className="sb-btn sb-btn-xs sb-btn-primary" onClick={onCreate} disabled={isCreating}>
+            {isCreating ? 'Creating...' : 'New'}
+          </button>
+        </div>
       </header>
 
       <div className="sb-project-items">
@@ -94,6 +108,16 @@ export default function ProjectList({
                     Rename
                   </button>
                 )}
+                {onExport ? (
+                  <button
+                    type="button"
+                    className="sb-btn sb-btn-xs"
+                    onClick={() => onExport(project.id)}
+                    title="Download this story as a backup file"
+                  >
+                    Export
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   className="sb-btn sb-btn-xs sb-btn-danger"
