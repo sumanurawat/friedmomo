@@ -2,7 +2,18 @@
 
 > A conversation-first storyboarding studio. Type one sentence, get a complete 3-act visual storyboard — characters, locations, eight shootable panels, all with inline AI-generated frames.
 
-**Storyboarder** is the first product under the **Friedmomo** umbrella. It runs entirely on your laptop. Your stories, API keys, and generated images stay on your machine. The only network traffic is between your laptop and [OpenRouter](https://openrouter.ai), using your own API key.
+**Storyboarder** is the first product under the **Friedmomo** umbrella. It lives at **[friedmomo.com](https://friedmomo.com)** and runs entirely in your browser — no sign-up, no install, no Storyboarder server in the middle. Your stories, API key, and generated images stay on your device (IndexedDB). The only network traffic is between your browser and [OpenRouter](https://openrouter.ai), using your own API key over HTTPS.
+
+A desktop build (Electron) is still produced from the same codebase for users who'd rather have a local app icon, but the web app is the primary way to use Storyboarder.
+
+---
+
+## Try it
+
+- **Web app** — <https://friedmomo.com/app/> — open and start typing.
+- **Landing page** — <https://friedmomo.com> — what it is, how it works, and why putting your OpenRouter key in a browser is safe.
+
+On first run you'll be walked through getting a free [OpenRouter](https://openrouter.ai/keys) key (a minute or two) and dropped straight into the planner. The default planning model is Claude Opus 4.7; swap it in **Settings → Models** any time.
 
 ---
 
@@ -30,7 +41,19 @@ npm install
 npm run dev
 ```
 
-This boots the Node backend on `:3001` and the Vite dev server on `:4173`. Open <http://127.0.0.1:4173> and work through the first-run wizard to paste your OpenRouter key and pick a planning model.
+This boots the Node backend on `:3001` and the Vite dev server on `:4173`. Open <http://127.0.0.1:4173> and work through the first-run wizard to paste your OpenRouter key.
+
+### Building the web app
+
+```bash
+# Build the PWA bundle into dist-web/
+npm run build:web
+
+# Build + serve it locally on :4173
+npm run preview:web
+```
+
+The web build talks to OpenRouter directly from the browser — no Node backend involved. `vite.config.js` resolves `@ai-impl` and `@storage-impl` aliases at build time so the Electron-only server code is never even imported into the web bundle.
 
 ### Building the desktop app
 
@@ -49,16 +72,62 @@ Output lands in `release/`. Unsigned for v0.x — macOS users will see a one-tim
 
 ### Publishing a release
 
+The **web app** ships on every push to `main` via GitHub Actions → GitHub Pages. There's no separate release step — the next `git push` is the deploy.
+
+The **desktop app** still publishes manually to GitHub Releases:
+
 ```bash
 # Builds for the current OS and publishes to GitHub Releases
 GH_TOKEN=... npm run release
 ```
 
-The packaged app auto-updates silently from the same GitHub Releases feed (electron-updater wired into the main process).
+The packaged desktop app auto-updates silently from the same GitHub Releases feed (electron-updater wired into the main process).
+
+---
+
+## How updates ship
+
+The web app and the desktop app use completely different update mechanisms.
+
+**Web app — instant on next reload.** Push to `main` → GitHub Actions rebuilds in ~30s → GitHub Pages serves the new bundle. Users get it on their next page load. No prompt, no download, no re-install; their IndexedDB data (key, settings, stories) is untouched.
+
+The reason it works without version-skew pain:
+
+- Vite fingerprints every bundle with a content hash (`index-D6jkarkf.js`). A new build produces a new hash → new URL → the browser fetches fresh. No stale-cache possible for the code.
+- The service worker (`public/sw.js`) uses **network-first** for the HTML shell, so `index.html` — which points at the latest hashed bundle — is always fetched from the network when online, with the cache only as an offline fallback.
+- Cross-origin traffic (OpenRouter) and hashed bundles bypass the SW entirely.
+- The SW uses `skipWaiting()` + `clients.claim()`, so a new worker takes over immediately on reload instead of waiting for every tab to close.
+
+Offline caveat: if you open the app offline, you boot the last-cached shell with the bundle it pointed at. Next online reload picks up whatever's current.
+
+**Desktop app — electron-updater.** Unchanged from before. The packaged app polls GitHub Releases on launch, downloads any newer version in the background, and swaps it in on next restart.
 
 ---
 
 ## Architecture
+
+The same React codebase ships in two shapes. A build-time `VITE_STORYBOARDER_MODE` flag + Vite alias (`@ai-impl`, `@storage-impl`) swap in the right AI + storage implementations so neither bundle carries code it'll never use.
+
+### Web mode (primary — what `friedmomo.com` serves)
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Browser tab (friedmomo.com/app/)                        │
+│ ┌─────────────────────────────────────────────────────┐ │
+│ │ React app                                           │ │
+│ │   src/services/ai-direct.js  → OpenRouter client    │ │
+│ │   src/services/storage-idb.js → IndexedDB (7 stores)│ │
+│ │   public/sw.js                → PWA shell cache     │ │
+│ └─────────┬───────────────────────────────────────────┘ │
+│           │ HTTPS (streaming SSE for chat)              │
+│           └─► OpenRouter API (user's own key)           │
+└─────────────────────────────────────────────────────────┘
+
+No Storyboarder server. Static files served by GitHub Pages.
+User data lives in IndexedDB on the user's device.
+```
+
+### Desktop mode (Electron, same UI, local Node backend)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -124,18 +193,28 @@ An **enforcement layer** in `src/store/project-store.js` (`enforceSceneMutationP
 
 ---
 
+## Contact
+
+- **Email** — <friedmomoapp@gmail.com> for anything: questions, bug reports, feedback, partnership.
+- **Instagram** — [@friedmomo.app](https://instagram.com/friedmomo.app) — updates, example storyboards, behind-the-scenes.
+- **Issues / PRs** — the [GitHub repo](https://github.com/sumanurawat/friedmomo) is the right place for anything code-shaped.
+
+---
+
 ## Status
 
-Pre-v0.1. The packaging pipeline works; current runway to a public beta:
+Public beta — live at [friedmomo.com](https://friedmomo.com). What's shipped so far:
 
-- [x] Electron wrapper + macOS DMG pipeline
-- [x] First-run onboarding wizard
+- [x] Electron wrapper + macOS DMG pipeline (kept for users who want a desktop app)
 - [x] electron-updater → GitHub Releases
-- [x] Settings-store race fix
+- [x] First-run onboarding wizard (simplified to 2 steps — welcome + key)
 - [x] Shot-grammar upgrade in the planner
-- [ ] App icon
-- [ ] Landing page at friedmomo.com/storyboarder
-- [ ] Tag `v0.1.0-beta` and publish first GitHub Release
+- [x] Settings-store race fix
+- [x] App icon
+- [x] Landing page at [friedmomo.com](https://friedmomo.com)
+- [x] Web app at [friedmomo.com/app/](https://friedmomo.com/app/) — IndexedDB storage, direct OpenRouter calls, PWA-installable
+- [x] Tag `v0.1.0-beta` and publish first GitHub Release
+- [ ] Enough real-user stories to know what to sharpen next
 
 ---
 
