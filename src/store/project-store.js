@@ -1245,6 +1245,87 @@ function countStreamedPanels(text) {
   return matches ? matches.length : 0;
 }
 
+/**
+ * Scan the growing stream for newly-completed entities and return an updated
+ * activity log. Turns a wall of silent-streaming JSON into a visible "deep
+ * research" feed: one tick per character, location, and panel as they close.
+ *
+ * This is a best-effort regex pass against partial JSON — names we can't
+ * parse yet (still streaming in) are simply not emitted; they'll show up on
+ * the next token. We never falsely emit because `[^"]+"` requires a complete
+ * quoted string.
+ *
+ * Capped at 8 entries (newest at tail) so long multi-scene runs don't blow
+ * out the banner.
+ */
+const ACTIVITY_CAP = 8;
+function deriveStreamProgress(fullText, previousActivity) {
+  const text = String(fullText || '');
+  const prev = Array.isArray(previousActivity) ? previousActivity : [];
+  const seen = new Set(prev.map((entry) => entry.id));
+  const events = [...prev];
+  const now = Date.now();
+
+  const pushEvent = (id, type, label) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    events.push({ id, type, label, ts: now });
+  };
+
+  // Story outline — fires once when the acts array first appears.
+  if (/"story_outline"\s*:\s*\{[\s\S]*?"acts"/.test(text)) {
+    pushEvent('outline:drafted', 'outline', 'Three-act spine drafted');
+  }
+
+  // Characters: names land in characters_add and characters_update.
+  const charMatches = [
+    ...text.matchAll(/"characters_(?:add|update)"\s*:\s*\[([\s\S]*?)(?:\]|$)/g),
+  ];
+  for (const block of charMatches) {
+    const body = block[1] || '';
+    const names = [...body.matchAll(/"name"\s*:\s*"([^"]+)"/g)];
+    for (const nameMatch of names) {
+      const label = nameMatch[1].trim();
+      if (!label) continue;
+      pushEvent(`character:${label.toLowerCase()}`, 'character', `Character: ${label}`);
+    }
+  }
+
+  // Locations: same structure as characters.
+  const locMatches = [
+    ...text.matchAll(/"locations_(?:add|update)"\s*:\s*\[([\s\S]*?)(?:\]|$)/g),
+  ];
+  for (const block of locMatches) {
+    const body = block[1] || '';
+    const names = [...body.matchAll(/"name"\s*:\s*"([^"]+)"/g)];
+    for (const nameMatch of names) {
+      const label = nameMatch[1].trim();
+      if (!label) continue;
+      pushEvent(`location:${label.toLowerCase()}`, 'location', `Location: ${label}`);
+    }
+  }
+
+  // Panels: emit a milestone per drafted panel, using the title as the label.
+  const panelsAddIdx = text.indexOf('"scenes_add"');
+  if (panelsAddIdx !== -1) {
+    const slice = text.slice(panelsAddIdx);
+    const titles = [...slice.matchAll(/"title"\s*:\s*"([^"]+)"/g)];
+    for (let i = 0; i < titles.length; i += 1) {
+      const label = titles[i][1].trim();
+      pushEvent(
+        `panel:${i + 1}`,
+        'panel',
+        `Panel ${i + 1}${label ? `: ${label}` : ''}`
+      );
+    }
+  }
+
+  if (events.length > ACTIVITY_CAP) {
+    return events.slice(events.length - ACTIVITY_CAP);
+  }
+  return events;
+}
+
 function collectSequenceSlots(storyboard) {
   const slots = [];
   const acts = Array.isArray(storyboard?.acts) ? storyboard.acts : [];
@@ -1441,6 +1522,14 @@ export const useProjectStore = create((set, get) => ({
   // even while the model is emitting structured JSON (which we hide from the
   // chat view). Resets to 0 at the start of each new request.
   streamedChars: 0,
+  // Rolling semantic-progress feed — one entry per character/location/panel
+  // that the planner has finished drafting. Drives the "deep research" style
+  // activity list in the processing banner so heavy-model users see real
+  // work landing even during long silent JSON phases. Empty outside streams.
+  streamingActivity: [],
+  // Epoch-ms timestamp when the current stream started (0 when idle). Used
+  // by the chat panel to display live elapsed time during multi-minute runs.
+  streamingStartedAt: 0,
   isSending: false,
   processingStatus: '',
   processingPhase: 'idle',
@@ -1506,6 +1595,8 @@ export const useProjectStore = create((set, get) => ({
       selectedSceneId: null,
       streamingText: '',
       streamedChars: 0,
+      streamingActivity: [],
+      streamingStartedAt: 0,
       isStreaming: false,
       isSending: false,
       processingStatus: '',
@@ -1581,6 +1672,8 @@ export const useProjectStore = create((set, get) => ({
       selectedSceneId: null,
       streamingText: '',
       streamedChars: 0,
+      streamingActivity: [],
+      streamingStartedAt: 0,
       isStreaming: false,
       isSending: false,
       processingStatus: '',
@@ -1648,6 +1741,8 @@ export const useProjectStore = create((set, get) => ({
       isStreaming: false,
       streamingText: '',
       streamedChars: 0,
+      streamingActivity: [],
+      streamingStartedAt: 0,
       isSending: false,
       processingStatus: '',
       processingPhase: 'idle',
@@ -1780,6 +1875,8 @@ export const useProjectStore = create((set, get) => ({
         activeProject: errorProject,
         streamingText: '',
         streamedChars: 0,
+        streamingActivity: [],
+        streamingStartedAt: 0,
         isStreaming: false,
         isSending: false,
         processingStatus: '',
@@ -1817,6 +1914,8 @@ export const useProjectStore = create((set, get) => ({
       isSending: true,
       streamingText: '',
       streamedChars: 0,
+      streamingActivity: [],
+      streamingStartedAt: Date.now(),
       processingStatus: 'Planning storyboard...',
       processingPhase: 'planning',
       processingDetail: 'Connecting to the planner and mapping the next storyboard changes.',
@@ -1845,13 +1944,18 @@ export const useProjectStore = create((set, get) => ({
         // characters_add → locations_add → scenes_add. Use their presence as a
         // real-time progress signal so the user knows work is progressing.
         const phase = derivePhaseFromStream(fullText, partialChat);
-        set({
+        // Extract entity-level progress events (characters named, locations
+        // built, panels drafted) so the banner can show a rolling activity
+        // feed — critical for heavy models (Opus, GPT-5.4 Pro) where a single
+        // response streams for minutes.
+        set((state) => ({
           streamingText: partialChat,
           streamedChars: fullText.length,
+          streamingActivity: deriveStreamProgress(fullText, state.streamingActivity),
           processingStatus: phase.status,
           processingPhase: phase.phase,
           processingDetail: phase.detail,
-        });
+        }));
       },
       onDone: async (fullText) => {
         const baseProject = resolveLiveProjectBase(get, projectWithUser);
@@ -1898,6 +2002,8 @@ export const useProjectStore = create((set, get) => ({
           isStreaming: false,
           streamingText: '',
           streamedChars: 0,
+          streamingActivity: [],
+          streamingStartedAt: 0,
           isSending: shouldGenerateImages,
           processingStatus: shouldGenerateImages ? 'Generating scene previews...' : '',
           processingPhase: shouldGenerateImages ? 'rendering' : 'idle',
@@ -1969,6 +2075,8 @@ export const useProjectStore = create((set, get) => ({
           isStreaming: false,
           streamingText: '',
           streamedChars: 0,
+          streamingActivity: [],
+          streamingStartedAt: 0,
           isSending: false,
           processingStatus: '',
           processingPhase: 'idle',
@@ -2002,6 +2110,8 @@ export const useProjectStore = create((set, get) => ({
             isStreaming: false,
             streamingText: '',
             streamedChars: 0,
+            streamingActivity: [],
+            streamingStartedAt: 0,
             isSending: false,
             processingStatus: '',
             processingPhase: 'idle',
@@ -2026,6 +2136,8 @@ export const useProjectStore = create((set, get) => ({
           isStreaming: false,
           streamingText: '',
           streamedChars: 0,
+          streamingActivity: [],
+          streamingStartedAt: 0,
           isSending: false,
           processingStatus: '',
           processingPhase: 'idle',

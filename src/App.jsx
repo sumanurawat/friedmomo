@@ -649,6 +649,8 @@ export default function App() {
     messages: activeProject?.messages || [],
     streamingText: projectStore.streamingText,
     streamedChars: projectStore.streamedChars,
+    streamingActivity: projectStore.streamingActivity,
+    streamingStartedAt: projectStore.streamingStartedAt,
     isStreaming: projectStore.isStreaming,
     isSending: projectStore.isSending,
     processingStatus: projectStore.processingStatus,

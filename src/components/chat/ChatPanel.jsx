@@ -35,10 +35,23 @@ function formatStreamSize(chars) {
   return `${kb >= 10 ? Math.round(kb) : kb.toFixed(1)} KB`;
 }
 
+// Wall-clock elapsed since the stream started. Ticks every 500ms while the
+// banner is visible so heavy-model users (Opus, GPT-5.4 Pro) can see real
+// progress during multi-minute runs instead of wondering if it's hung.
+function formatElapsed(ms) {
+  const seconds = Math.max(0, Math.floor(Number(ms) / 1000));
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${minutes}m ${remainder.toString().padStart(2, '0')}s`;
+}
+
 export default function ChatPanel({
   messages,
   streamingText,
   streamedChars = 0,
+  streamingActivity = [],
+  streamingStartedAt = 0,
   isStreaming,
   isSending,
   processingStatus,
@@ -57,6 +70,7 @@ export default function ChatPanel({
   const [tooltip, setTooltip] = useState(null);
   const [tooltipStyle, setTooltipStyle] = useState(null);
   const [tooltipPlacement, setTooltipPlacement] = useState('top');
+  const [elapsedMs, setElapsedMs] = useState(0);
   const listRef = useRef(null);
   const tooltipRef = useRef(null);
   const tooltipTimerRef = useRef(null);
@@ -90,12 +104,33 @@ export default function ChatPanel({
   // takes over.
   const streamSizeLabel = isStreaming ? formatStreamSize(streamedChars) : '';
 
+  // Live wall-clock elapsed. Kept in local state so the banner re-renders
+  // every 500ms without forcing the whole store to tick. The effect only
+  // runs while streaming; when it stops we just hide the pill via the
+  // gating expression below rather than touching state inside the effect.
+  useEffect(() => {
+    if (!isSending || !streamingStartedAt) return undefined;
+    const tick = () => setElapsedMs(Date.now() - streamingStartedAt);
+    tick();
+    const id = setInterval(tick, 500);
+    return () => clearInterval(id);
+  }, [isSending, streamingStartedAt]);
+  const elapsedLabel = isSending && streamingStartedAt > 0
+    ? formatElapsed(elapsedMs)
+    : '';
+
+  // Show the last 4 entity-progress events. Oldest at top so the list reads
+  // like a running log; new entries pop in at the bottom.
+  const recentActivity = Array.isArray(streamingActivity)
+    ? streamingActivity.slice(-4)
+    : [];
+
   // Auto-scroll when new messages arrive or banner appears/disappears
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [displayMessages.length, streamingText, isSending]);
+  }, [displayMessages.length, streamingText, isSending, recentActivity.length]);
 
   useEffect(() => () => {
     clearTimeout(tooltipTimerRef.current);
@@ -225,11 +260,24 @@ export default function ChatPanel({
                 {streamSizeLabel
                   ? <span className="sb-processing-bytes" title="Total bytes streamed from the planner so far">{streamSizeLabel}</span>
                   : null}
+                {elapsedLabel
+                  ? <span className="sb-processing-elapsed" title="Elapsed since the planner started streaming">{elapsedLabel}</span>
+                  : null}
               </strong>
               <small>
                 {processingDetail ||
                   (isStreaming ? 'Streaming the AI reply.' : 'Finishing background work.')}
               </small>
+              {recentActivity.length > 0 ? (
+                <ul className="sb-processing-activity" aria-label="Planner progress">
+                  {recentActivity.map((entry) => (
+                    <li key={entry.id} data-activity-type={entry.type}>
+                      <span className="sb-activity-dot" aria-hidden="true" />
+                      <span className="sb-activity-label">{entry.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </div>
           </div>
         ) : null}
