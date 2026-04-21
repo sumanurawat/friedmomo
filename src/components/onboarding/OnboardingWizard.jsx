@@ -4,32 +4,26 @@ import { useState, useEffect, useRef } from 'react';
  * First-run onboarding wizard.
  *
  * Shown in place of the main app when the user has no OpenRouter API key
- * configured. Walks them through three steps:
- *   1. Welcome      — what Storyboarder does, what they'll need
- *   2. API key      — link to openrouter.ai, paste field, Test button
- *   3. Pick model   — defaults to cheap Gemini Flash, can upgrade later
+ * configured. Walks them through two steps:
+ *   0. Welcome — what Storyboarder does, what they'll need
+ *   1. API key — link to openrouter.ai, paste field, Test button
  *
- * On completion: persists the key + model via the settings store and
- * triggers the normal app boot path.
+ * The planning model is set to the app default (Claude Opus 4.7) — no model
+ * picker during onboarding. Users can change it any time in Settings → Models.
+ *
+ * On completion: persists the key via the settings store and triggers the
+ * normal app boot path.
  *
  * Props:
- *   suggestedModels  — array of { id, label, tier } from providers.js
- *   defaultModel     — preselected model id (should be cheap/fast)
  *   onValidate(key)  — async (key) => ({ valid: boolean, error?: string })
- *   onComplete({ apiKey, model })
+ *   onComplete({ apiKey })
  */
-export default function OnboardingWizard({
-  suggestedModels = [],
-  defaultModel = '',
-  onValidate,
-  onComplete,
-}) {
+export default function OnboardingWizard({ onValidate, onComplete }) {
   const [step, setStep] = useState(0);
   const [apiKey, setApiKey] = useState('');
   const [testing, setTesting] = useState(false);
   const [keyValid, setKeyValid] = useState(null); // null | true | false
   const [errorMsg, setErrorMsg] = useState('');
-  const [model, setModel] = useState(defaultModel);
   const [submitting, setSubmitting] = useState(false);
   const keyInputRef = useRef(null);
 
@@ -61,22 +55,20 @@ export default function OnboardingWizard({
   }
 
   async function handleFinish() {
+    if (keyValid !== true) return;
     setSubmitting(true);
     try {
-      await onComplete?.({ apiKey: apiKey.trim(), model });
+      await onComplete?.({ apiKey: apiKey.trim() });
     } finally {
       setSubmitting(false);
     }
   }
 
-  const fastModels = suggestedModels.filter((m) => m.tier === 'Fast');
-  const strongModels = suggestedModels.filter((m) => m.tier === 'Strong' || m.tier === 'Flagship');
-
   return (
     <div className="sb-onboard">
       <div className="sb-onboard-card">
         <div className="sb-onboard-steps" aria-hidden="true">
-          {[0, 1, 2].map((i) => (
+          {[0, 1].map((i) => (
             <span
               key={i}
               className={`sb-onboard-dot ${i === step ? 'is-active' : i < step ? 'is-done' : ''}`}
@@ -100,7 +92,7 @@ export default function OnboardingWizard({
                 for usage — usually a few cents per story.
               </p>
               <p className="sb-onboard-reassure">
-                Everything runs on your laptop. Your stories never leave your machine. The only
+                Everything runs on your device. Your stories never leave your browser. The only
                 network traffic is from you to OpenRouter, using your own key.
               </p>
             </div>
@@ -179,6 +171,27 @@ export default function OnboardingWizard({
               )}
             </div>
 
+            <div className="sb-onboard-safety">
+              <strong>Where does this key live?</strong>
+              <p>
+                In your browser on this device — nowhere else. There's no Storyboarder server, so
+                we physically can't see it: requests go from here straight to OpenRouter. You can
+                revoke or rotate it any time at{' '}
+                <button
+                  type="button"
+                  className="sb-onboard-link sb-onboard-link-inline"
+                  onClick={() => {
+                    try {
+                      window.open('https://openrouter.ai/keys', '_blank', 'noopener,noreferrer');
+                    } catch { /* noop */ }
+                  }}
+                >
+                  openrouter.ai/keys
+                </button>
+                , and we recommend capping credit on the key for extra peace of mind.
+              </p>
+            </div>
+
             <div className="sb-onboard-actions">
               <button
                 type="button"
@@ -190,85 +203,8 @@ export default function OnboardingWizard({
               <button
                 type="button"
                 className="sb-onboard-primary"
-                onClick={() => setStep(2)}
-                disabled={keyValid !== true}
-              >
-                Next →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="sb-onboard-step">
-            <h1 className="sb-onboard-title">Pick a planning model</h1>
-            <p className="sb-onboard-lede">
-              This is the model that reads your prompts and writes your storyboard. You can change
-              this any time from <strong>Settings → Models</strong>.
-            </p>
-
-            <div className="sb-onboard-model-group">
-              <h3>Fast + cheap — recommended to start</h3>
-              <p className="sb-onboard-group-detail">
-                Usually a few cents per turn. Great for brainstorming and first drafts.
-              </p>
-              <div className="sb-onboard-models">
-                {fastModels.map((m) => (
-                  <label
-                    key={m.id}
-                    className={`sb-onboard-model ${model === m.id ? 'is-selected' : ''}`}
-                  >
-                    <input
-                      type="radio"
-                      name="model"
-                      value={m.id}
-                      checked={model === m.id}
-                      onChange={() => setModel(m.id)}
-                    />
-                    <span className="sb-onboard-model-label">{m.label}</span>
-                    <span className="sb-onboard-model-id">{m.id}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {strongModels.length > 0 && (
-              <details className="sb-onboard-more-models">
-                <summary>Use a bigger model (Claude Opus, Gemini Pro, GPT-4) — higher quality, higher cost</summary>
-                <div className="sb-onboard-models">
-                  {strongModels.map((m) => (
-                    <label
-                      key={m.id}
-                      className={`sb-onboard-model ${model === m.id ? 'is-selected' : ''}`}
-                    >
-                      <input
-                        type="radio"
-                        name="model"
-                        value={m.id}
-                        checked={model === m.id}
-                        onChange={() => setModel(m.id)}
-                      />
-                      <span className="sb-onboard-model-label">{m.label}</span>
-                      <span className="sb-onboard-model-id">{m.id}</span>
-                    </label>
-                  ))}
-                </div>
-              </details>
-            )}
-
-            <div className="sb-onboard-actions">
-              <button
-                type="button"
-                className="sb-onboard-ghost"
-                onClick={() => setStep(1)}
-              >
-                ← Back
-              </button>
-              <button
-                type="button"
-                className="sb-onboard-primary"
                 onClick={handleFinish}
-                disabled={!model || submitting}
+                disabled={keyValid !== true || submitting}
               >
                 {submitting ? 'Saving…' : 'Start storyboarding'}
               </button>

@@ -19,7 +19,6 @@
       </a>
       <nav>
         <a href="#how">How it works</a>
-        <a href="#install">Install</a>
         <a href="https://github.com/sumanurawat/friedmomo" target="_blank" rel="noopener">GitHub ↗</a>
       </nav>
     </header>
@@ -37,9 +36,8 @@
         </p>
         <div class="cta-row">
           <a class="cta primary" href="/app/">Open in browser</a>
-          <a class="cta ghost" href="#install">Download desktop app</a>
         </div>
-        <p class="cta-sub">Works in your browser. Or install the desktop app for Mac · Windows · Linux. No sign-up either way.</p>
+        <p class="cta-sub">No sign-up. No install. Your stories stay on your device.</p>
       </section>
 
       <!-- EXAMPLE -->
@@ -71,11 +69,10 @@
         <ol class="steps">
           <li>
             <span class="step-n">1</span>
-            <h3>Open in your browser — or install the app</h3>
+            <h3>Open Storyboarder in your browser</h3>
             <p>
-              The fastest path is <a href="/app/">open Storyboarder in your browser</a> — nothing to install,
-              your stories stay on your device. Prefer a native app? Download the
-              <a href="#install">Mac, Windows, or Linux</a> build below.
+              Nothing to install. <a href="/app/">Click open</a> and you're in. Your stories stay
+              on your device — no account, no sync, no server.
             </p>
           </li>
           <li>
@@ -101,104 +98,44 @@
         </ol>
       </section>
 
-      <!-- DOWNLOADS -->
-      <section id="install" class="install">
-        <h2>Get Storyboarder</h2>
-        <p class="install-lede">
-          Free and in beta. <a class="browser-link" href="/app/">Open it in your browser</a>,
-          or install the native app for your system.
-        </p>
-
-        <div class="download-grid">
-          <a class="download-card"
-             href="https://github.com/sumanurawat/friedmomo/releases/latest/download/Storyboarder-mac.dmg"
-             data-os="mac">
-            <div class="os-icon"></div>
-            <div class="os-info">
-              <h3>Mac</h3>
-              <p>For MacBooks and iMacs (Intel or Apple Silicon). Universal .dmg file.</p>
-            </div>
-          </a>
-          <a class="download-card"
-             href="https://github.com/sumanurawat/friedmomo/releases/latest/download/Storyboarder-win.exe"
-             data-os="win">
-            <div class="os-icon"></div>
-            <div class="os-info">
-              <h3>Windows</h3>
-              <p>For Windows 10 and 11 (64-bit). Standard installer.</p>
-            </div>
-          </a>
-          <a class="download-card"
-             href="https://github.com/sumanurawat/friedmomo/releases/latest/download/Storyboarder-linux.AppImage"
-             data-os="linux">
-            <div class="os-icon"></div>
-            <div class="os-info">
-              <h3>Linux</h3>
-              <p>For Ubuntu, Debian, Fedora and friends. AppImage format.</p>
-            </div>
-          </a>
+      <!-- SAFETY -->
+      <section class="safety">
+        <div class="safety-card">
+          <h2>Is my key safe in a browser?</h2>
+          <p class="safety-lede">
+            Short answer: as safe as storing a password in your browser — and we physically
+            can't touch it, because there is no "we" on the server side.
+          </p>
+          <ul class="safety-list">
+            <li>
+              <strong>Your key lives in this browser, on this device.</strong>
+              It's stored in local storage (IndexedDB), scoped to friedmomo.com — the same
+              isolation model your browser uses for saved passwords.
+            </li>
+            <li>
+              <strong>There is no Storyboarder server.</strong>
+              Requests go straight from your browser to OpenRouter over HTTPS. We never see
+              your key, your prompts, or your stories — we can't, by design.
+            </li>
+            <li>
+              <strong>Revoke or rotate any time.</strong>
+              One click at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>
+              and the key is dead everywhere.
+            </li>
+            <li>
+              <strong>Cap the blast radius.</strong>
+              We recommend loading the key with a small credit ($5–$20) rather than linking it
+              to a big balance. OpenRouter also lets you set a spend limit per key.
+            </li>
+          </ul>
+          <p class="safety-note">
+            <strong>One honest caveat:</strong> any browser-stored credential can be read by a
+            malicious browser extension with "access all site data" permission. This is true of
+            every web app that holds a token — password managers, webmail, crypto wallets. If
+            that worries you, use a fresh browser profile just for Storyboarder, or stick to a
+            key with a small credit cap.
+          </p>
         </div>
-        <p class="coming-soon">
-          Windows and Linux builds arrive in the next beta release. For now,
-          Mac is ready to go — the other buttons will light up in a few days.
-        </p>
-
-        <!-- INSTALL HELP -->
-        <details class="install-help">
-          <summary>First time opening it? Read this.</summary>
-          <div class="help-body">
-            <p>
-              Storyboarder is a very new indie app. Your computer doesn't know us yet, so it'll
-              show a warning the <em>first time</em> you open it. This is normal. It only happens once.
-            </p>
-            <div class="help-grid">
-              <div>
-                <h4>On Mac</h4>
-                <ol>
-                  <li>Double-click the downloaded DMG.</li>
-                  <li>Drag the Storyboarder icon into your Applications folder.</li>
-                  <li>
-                    <strong>Open Terminal</strong> (press <kbd>⌘ Space</kbd>, type "Terminal", hit Enter),
-                    paste this line, and press Enter:
-                    <pre><code>xattr -cr /Applications/Storyboarder.app</code></pre>
-                    This tells macOS the app is safe. You only do it once.
-                  </li>
-                  <li>Now double-click Storyboarder in Applications. It opens.</li>
-                </ol>
-                <p class="help-note">
-                  <strong>Why?</strong> Storyboarder is a new indie app — Apple doesn't know us yet and
-                  flags downloads with a scary "could not verify" dialog that doesn't give you a way
-                  through. The one line above removes Apple's download-quarantine flag from the app.
-                  (You can verify the command doesn't do anything else by searching for
-                  <code>xattr</code> — it's a standard macOS tool.)
-                </p>
-                <p class="help-note">
-                  <strong>No Terminal?</strong> Open <strong>System Settings → Privacy &amp; Security</strong>,
-                  scroll down to <strong>Security</strong>. After you try to open Storyboarder once and
-                  macOS blocks it, an <strong>Open Anyway</strong> button appears there.
-                </p>
-              </div>
-              <div>
-                <h4>On Windows</h4>
-                <ol>
-                  <li>Run the downloaded installer.</li>
-                  <li>You'll see "Windows protected your PC."</li>
-                  <li>Click <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
-                  <li>Follow the installer prompts.</li>
-                  <li>Done — open it from your Start menu or desktop.</li>
-                </ol>
-              </div>
-              <div>
-                <h4>On Linux</h4>
-                <ol>
-                  <li>Download the <code>.AppImage</code> (or the <code>.deb</code> if you prefer).</li>
-                  <li>For AppImage: right-click → Properties → mark as executable. Double-click to run.</li>
-                  <li>For .deb: <code>sudo dpkg -i Storyboarder-*.deb</code>.</li>
-                </ol>
-              </div>
-            </div>
-          </div>
-        </details>
       </section>
 
       <!-- FOOTER CTA -->
@@ -206,7 +143,6 @@
         <h2>Ready to draw a story?</h2>
         <div class="cta-row">
           <a class="cta primary big" href="/app/">Open in browser →</a>
-          <a class="cta ghost" href="#install">Download desktop app</a>
         </div>
         <p class="tiny">
           Not ready yet? <a href="mailto:hello@friedmomo.com">Drop us an email</a> and we'll ping you
@@ -225,6 +161,5 @@
       </p>
     </footer>
 
-    <script src="os-detect.js"></script>
   </body>
 </html>

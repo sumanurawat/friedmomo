@@ -4,7 +4,7 @@ import AppLayout from './components/layout/AppLayout.jsx';
 import SettingsPage from './components/settings/SettingsPage.jsx';
 import TutorialOverlay from './components/tutorial/TutorialOverlay.jsx';
 import OnboardingWizard from './components/onboarding/OnboardingWizard.jsx';
-import { getSuggestedModels, DEFAULT_PLANNING_MODEL } from './config/providers.js';
+import { DEFAULT_PLANNING_MODEL } from './config/providers.js';
 import { validateKey } from './services/ai-client.js';
 import { generateImage, humanizeError } from './services/ai-client.js';
 import { buildFallbackStoryboardFrame, buildSceneImagePrompt } from './services/scene-images.js';
@@ -808,12 +808,12 @@ export default function App() {
     return (
       <>
         <OnboardingWizard
-          suggestedModels={getSuggestedModels('openrouter', 'planning')}
-          defaultModel={DEFAULT_PLANNING_MODEL}
           onValidate={async (apiKey) => validateKey({ provider: 'openrouter', apiKey })}
-          onComplete={async ({ apiKey, model }) => {
+          onComplete={async ({ apiKey }) => {
             await settingsStore.setProviderKey('openrouter', apiKey);
-            await settingsStore.setPlanningModel(model);
+            // Planning model is pre-set to DEFAULT_PLANNING_MODEL (Opus 4.7)
+            // by the settings store. Users can change it in Settings → Models.
+            await settingsStore.setPlanningModel(DEFAULT_PLANNING_MODEL);
           }}
         />
         <DialogHost />

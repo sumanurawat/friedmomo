@@ -89,19 +89,32 @@ function ModelPicker({
   const liveModels = availableModels?.[selectedProvider] || [];
   const suggested = getSuggestedModels(selectedProvider, modelType);
 
-  // Merge: suggested models first (marked), then live models not in suggested
+  // Merge: suggested models first (already marked with `recommended` as set
+  // in providers.js), then live models not already in the suggested set.
+  //
+  // For the image picker specifically, we filter the live list down to models
+  // that actually generate images (output_modalities includes 'image') — the
+  // rest of OpenRouter's catalog is chat models and would be misleading here.
   const allModels = useMemo(() => {
     const suggestedIds = new Set(suggested.map((m) => m.id));
     const merged = suggested.map((m) => ({ ...m, suggested: true }));
 
     for (const m of liveModels) {
-      if (!suggestedIds.has(m.id)) {
-        merged.push({ id: m.id, name: m.name || m.id, label: m.name || m.id, suggested: false });
+      if (suggestedIds.has(m.id)) continue;
+      if (modelType === 'image') {
+        const outs = Array.isArray(m.outputModalities) ? m.outputModalities : [];
+        if (!outs.includes('image')) continue;
       }
+      merged.push({
+        id: m.id,
+        name: m.name || m.id,
+        label: m.name || m.id,
+        suggested: false,
+      });
     }
 
     return merged;
-  }, [suggested, liveModels]);
+  }, [suggested, liveModels, modelType]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return allModels;
@@ -174,7 +187,7 @@ function ModelPicker({
           >
             <span className="sb-model-list-name">{m.label || m.name || m.id}</span>
             <span className="sb-model-list-id">{m.id}</span>
-            {m.suggested && <span className="sb-model-list-badge">Recommended</span>}
+            {m.recommended && <span className="sb-model-list-badge">Recommended</span>}
             {m.tier && <span className="sb-model-list-tier">{m.tier}</span>}
           </button>
         ))}

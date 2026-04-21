@@ -20,6 +20,12 @@ const MODEL_ENDPOINTS = {
   openrouter: 'https://openrouter.ai/api/v1/models',
 };
 
+// Key-validation endpoints — these MUST require auth, otherwise any gibberish
+// key passes. OpenRouter's /v1/models is public, so we use /v1/auth/key here.
+const VALIDATE_KEY_ENDPOINTS = {
+  openrouter: 'https://openrouter.ai/api/v1/auth/key',
+};
+
 // Title generation is HARD-LOCKED to a cheap model. Titles are 2-5 words and
 // don't need flagship reasoning. Any provider/model fields in the request
 // body are IGNORED — this is intentional so a misconfigured client can never
@@ -275,7 +281,9 @@ export async function handleAI(ctx) {
     const { provider, apiKey } = body || {};
     if (!apiKey) return ctx.json({ valid: false, error: 'No API key provided.' });
 
-    const url = MODEL_ENDPOINTS[provider];
+    // Use the auth-required endpoint — /v1/models is public and would accept
+    // any gibberish key.
+    const url = VALIDATE_KEY_ENDPOINTS[provider];
     if (!url) return ctx.json({ valid: false, error: `Unknown provider: ${provider}` });
 
     try {
@@ -317,11 +325,18 @@ export async function handleAI(ctx) {
       if (!resp.ok) return ctx.json([]);
       const data = await resp.json();
       const raw = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-      const models = raw.map((m) => ({
-        id: String(m.id || m.name || '').trim(),
-        name: String(m.name || m.id || '').trim(),
-        context_length: Number(m.context_length || 0) || null,
-      })).filter((m) => m.id);
+      const models = raw.map((m) => {
+        const arch = m?.architecture || {};
+        const outputModalities = Array.isArray(arch.output_modalities) ? arch.output_modalities : [];
+        return {
+          id: String(m.id || m.name || '').trim(),
+          name: String(m.name || m.id || '').trim(),
+          context_length: Number(m.context_length || 0) || null,
+          // Pass-through capability info so the Models page can filter, e.g.
+          // show only image-generating models in the image picker.
+          outputModalities,
+        };
+      }).filter((m) => m.id);
       return ctx.json(models);
     } catch {
       return ctx.json([]);

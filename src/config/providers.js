@@ -22,10 +22,15 @@ export const PROVIDERS = [
  *
  * OpenRouter IDs sourced from: https://openrouter.ai/models
  */
+// The `recommended` flag drives the green "Recommended" badge in Settings →
+// Models. Keep it scarce — only flag the single default we want to nudge new
+// users toward. Everything else in the list is still discoverable but
+// unadorned, so the badge stays meaningful.
 export const SUGGESTED_MODELS = {
   openrouter: {
     planning: [
       // --- Flagship / strongest reasoning ---
+      { id: 'anthropic/claude-opus-4.7', label: 'Claude Opus 4.7', tier: 'Flagship', recommended: true },
       { id: 'anthropic/claude-opus-4', label: 'Claude Opus 4', tier: 'Flagship' },
       { id: 'google/gemini-2.5-pro-preview', label: 'Gemini 2.5 Pro', tier: 'Flagship' },
       { id: 'openai/gpt-4.1', label: 'GPT-4.1', tier: 'Flagship' },
@@ -43,16 +48,19 @@ export const SUGGESTED_MODELS = {
       { id: 'meta-llama/llama-4-scout', label: 'Llama 4 Scout', tier: 'Fast' },
     ],
     image: [
-      { id: 'google/gemini-2.5-flash-preview-image', label: 'Gemini 2.5 Flash Image' },
-      { id: 'openai/gpt-image-1', label: 'GPT Image 1 (DALL-E)' },
+      // Both are real image-generation endpoints; either is fine, Gemini is cheaper.
+      { id: 'google/gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image', recommended: true },
+      { id: 'openai/gpt-image-1', label: 'GPT Image 1 (DALL-E)', recommended: true },
     ],
   },
 };
 
 export const DEFAULT_PLANNING_PROVIDER = 'openrouter';
-export const DEFAULT_PLANNING_MODEL = 'google/gemini-2.5-flash-preview';
+// Default to Opus 4.7 — the onboarding no longer asks users to pick, so this
+// is what they get unless they change it in Settings → Models.
+export const DEFAULT_PLANNING_MODEL = 'anthropic/claude-opus-4.7';
 export const DEFAULT_IMAGE_PROVIDER = 'openrouter';
-export const DEFAULT_IMAGE_MODEL = 'google/gemini-2.5-flash-preview-image';
+export const DEFAULT_IMAGE_MODEL = 'google/gemini-2.5-flash-image';
 
 /**
  * Title generator — cheap/fast model. Titles are 2–5 words, so we don't need

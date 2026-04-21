@@ -16,6 +16,10 @@ import { logger } from './logger.js';
 
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
+// IMPORTANT: /v1/models is PUBLIC (returns 200 without auth), so it can't be
+// used to validate a key. /v1/auth/key is the authenticated endpoint — it
+// returns 200 with key metadata when the key is valid, and 401 when it isn't.
+const OPENROUTER_AUTH_KEY_URL = 'https://openrouter.ai/api/v1/auth/key';
 
 // Timeouts mirror the backend version so UX is identical across modes.
 const STREAM_TOTAL_CAP_MS = 15 * 60_000;
@@ -406,7 +410,11 @@ export async function generateImage({ prompt, model }) {
 }
 
 /**
- * Key validation — hit /models with the supplied key and treat 200 as valid.
+ * Key validation — hit /auth/key with the supplied key.
+ *
+ * DO NOT use /v1/models — that endpoint is public and returns 200 for any
+ * request, including ones with gibberish keys. /v1/auth/key requires a
+ * valid bearer token and returns 401 otherwise, so it's the real check.
  */
 export async function validateKey({ provider, apiKey }) {
   if (!apiKey) return { valid: false, error: 'No API key provided.' };
@@ -417,7 +425,7 @@ export async function validateKey({ provider, apiKey }) {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10_000);
-    const resp = await fetch(OPENROUTER_MODELS_URL, {
+    const resp = await fetch(OPENROUTER_AUTH_KEY_URL, {
       method: 'GET',
       signal: controller.signal,
       headers: { 'Authorization': `Bearer ${apiKey}` },
@@ -453,11 +461,18 @@ export async function listModels({ provider }) {
     const data = await resp.json();
     const raw = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
     return raw
-      .map((m) => ({
-        id: String(m.id || m.name || '').trim(),
-        name: String(m.name || m.id || '').trim(),
-        context_length: Number(m.context_length || 0) || null,
-      }))
+      .map((m) => {
+        const arch = m?.architecture || {};
+        const outputModalities = Array.isArray(arch.output_modalities) ? arch.output_modalities : [];
+        return {
+          id: String(m.id || m.name || '').trim(),
+          name: String(m.name || m.id || '').trim(),
+          context_length: Number(m.context_length || 0) || null,
+          // Pass-through capability info so the Models page can filter, e.g.
+          // show only image-generating models in the image picker.
+          outputModalities,
+        };
+      })
       .filter((m) => m.id);
   } catch {
     return [];
