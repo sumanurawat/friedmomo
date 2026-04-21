@@ -104,6 +104,20 @@ Offline caveat: if you open the app offline, you boot the last-cached shell with
 
 ---
 
+## Analytics
+
+The live site uses [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/) — aggregate pageviews, referrers, and countries. No cookies, no individual tracking, no third-party ad networks. We do it so we can tell whether anyone is using the site; that's the entire scope. The disclosure lives on [the privacy page](https://friedmomo.com/privacy.html).
+
+**If you fork this repo** and want analytics on your own deploy:
+
+1. Create a site at [Cloudflare → Web Analytics](https://one.dash.cloudflare.com/?to=/:account/web-analytics) and copy the beacon token (a hex string).
+2. In your fork: Settings → Secrets and variables → Actions → New repository secret. Name it `CF_ANALYTICS_TOKEN`, paste the token.
+3. Push to `main`. The deploy workflow substitutes the token into every HTML under `_site/` before uploading; locally the placeholder stays and the beacon never loads, so dev traffic never pollutes the dashboard.
+
+If you don't want analytics, leave the secret unset. The workflow skips injection and serves the site unchanged — just remember to remove the analytics paragraph from `landing/privacy.html` so your privacy copy stays honest.
+
+---
+
 ## Architecture
 
 The same React codebase ships in two shapes. A build-time `VITE_STORYBOARDER_MODE` flag + Vite alias (`@ai-impl`, `@storage-impl`) swap in the right AI + storage implementations so neither bundle carries code it'll never use.

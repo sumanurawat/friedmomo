@@ -11,6 +11,28 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+
+    <!-- Cloudflare Web Analytics — aggregate, cookieless visitor counts.
+         The placeholder is replaced at deploy time by the GitHub Actions
+         workflow (.github/workflows/deploy-landing.yml) using the
+         CF_ANALYTICS_TOKEN repository secret. When the placeholder is still
+         present (local dev, unconfigured forks) the beacon never loads, so
+         development traffic never lands in the production dashboard. -->
+    <script>
+      (function () {
+        var token = '__CF_ANALYTICS_TOKEN__';
+        // Real Cloudflare beacon tokens are hex. The placeholder contains
+        // underscores, so this guard fails cleanly until CI substitutes a
+        // real token. The regex literal itself contains no placeholder text
+        // so the sed replacement in CI can't accidentally clobber it.
+        if (!/^[0-9a-f]+$/i.test(token)) return;
+        var s = document.createElement('script');
+        s.defer = true;
+        s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+        s.setAttribute('data-cf-beacon', JSON.stringify({ token: token }));
+        document.head.appendChild(s);
+      })();
+    </script>
   </head>
   <body>
     <script>

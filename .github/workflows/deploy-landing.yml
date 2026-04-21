@@ -59,6 +59,28 @@ jobs:
           mkdir -p _site/app
           cp -R dist-web/. _site/app/
 
+      - name: Inject Cloudflare Web Analytics token
+        # Replaces the __CF_ANALYTICS_TOKEN__ placeholder in every HTML file
+        # under _site/ with the repo secret. Beacon loader guards on a hex
+        # regex, so if the secret is empty or missing the placeholder stays
+        # and the beacon never loads (safe no-op). Set the CF_ANALYTICS_TOKEN
+        # secret in repo Settings → Secrets and variables → Actions.
+        env:
+          CF_ANALYTICS_TOKEN: ${{ secrets.CF_ANALYTICS_TOKEN }}
+        run: |
+          if [ -z "${CF_ANALYTICS_TOKEN}" ]; then
+            echo "CF_ANALYTICS_TOKEN not set — skipping analytics injection (placeholder stays, beacon won't load)."
+            exit 0
+          fi
+          # Reject anything that isn't a hex token so we don't deploy a broken
+          # beacon config if the secret is accidentally a URL or JSON blob.
+          if ! echo "${CF_ANALYTICS_TOKEN}" | grep -Eq '^[0-9a-fA-F]+$'; then
+            echo "::error::CF_ANALYTICS_TOKEN must be a hex string. Got something else — check the secret."
+            exit 1
+          fi
+          find _site -name '*.html' -print0 | xargs -0 sed -i "s/__CF_ANALYTICS_TOKEN__/${CF_ANALYTICS_TOKEN}/g"
+          echo "Analytics token injected into $(find _site -name '*.html' | wc -l) HTML file(s)."
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 

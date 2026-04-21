@@ -10,6 +10,22 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
+
+    <!-- Cloudflare Web Analytics — aggregate, cookieless visitor counts.
+         Placeholder is replaced at deploy time by the GitHub Actions
+         workflow using the CF_ANALYTICS_TOKEN repo secret. See
+         deploy-landing.yml and README "Analytics" section. -->
+    <script>
+      (function () {
+        var token = '__CF_ANALYTICS_TOKEN__';
+        if (!/^[0-9a-f]+$/i.test(token)) return;
+        var s = document.createElement('script');
+        s.defer = true;
+        s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+        s.setAttribute('data-cf-beacon', JSON.stringify({ token: token }));
+        document.head.appendChild(s);
+      })();
+    </script>
   </head>
   <body>
     <header class="nav">

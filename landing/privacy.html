@@ -45,6 +45,21 @@
         color: #e2e8f0;
       }
     </style>
+
+    <!-- Cloudflare Web Analytics — aggregate, cookieless visitor counts.
+         Placeholder is replaced at deploy time by the GitHub Actions
+         workflow using the CF_ANALYTICS_TOKEN repo secret. -->
+    <script>
+      (function () {
+        var token = '__CF_ANALYTICS_TOKEN__';
+        if (!/^[0-9a-f]+$/i.test(token)) return;
+        var s = document.createElement('script');
+        s.defer = true;
+        s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+        s.setAttribute('data-cf-beacon', JSON.stringify({ token: token }));
+        document.head.appendChild(s);
+      })();
+    </script>
   </head>
   <body>
     <header class="nav">
@@ -78,7 +93,15 @@
         <a href="https://openrouter.ai/privacy" target="_blank" rel="noopener" style="color:#fbbf24;">openrouter.ai/privacy</a>.
       </p>
       <p>
-        No analytics, no crash reports, no accounts, no cookies.
+        No crash reports, no accounts, no cookies.
+      </p>
+      <p>
+        One small exception: we use <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener" style="color:#fbbf24;">Cloudflare Web Analytics</a>
+        to count aggregate visits so we know whether anyone is using the site.
+        It doesn't set cookies, doesn't track individuals across pages, and
+        doesn't follow you around the internet. The data we see is limited to
+        page views, referrers, country, and approximate device class — nothing
+        that identifies you.
       </p>
 
       <h2>Questions</h2>
