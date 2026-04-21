@@ -9,6 +9,7 @@ import {
   DEFAULT_IMAGE_PROVIDER,
   DEFAULT_IMAGE_MODEL,
   STALE_PLANNING_MODELS,
+  STALE_IMAGE_MODELS,
   getSuggestedModels,
 } from '../config/providers.js';
 
@@ -102,12 +103,24 @@ export const useSettingsStore = create((set, get) => ({
       ? DEFAULT_PLANNING_MODEL
       : savedPlanningModel || DEFAULT_PLANNING_MODEL;
 
+    // Same deal for imageModel. This is where stale IDs bite hardest
+    // because the symptom is subtle: the first image regen fails with
+    // "No endpoints found for …" and the app silently shows the locally
+    // composed fallback frame — users conclude "the images are broken"
+    // without realizing it's a dead upstream model.
+    const savedImageModel = String(settings?.imageModel || '').trim();
+    const needsImageMigration =
+      savedImageModel && STALE_IMAGE_MODELS.has(savedImageModel);
+    const effectiveImageModel = needsImageMigration
+      ? DEFAULT_IMAGE_MODEL
+      : savedImageModel || DEFAULT_IMAGE_MODEL;
+
     set({
       providerKeys,
       planningProvider: String(settings?.planningProvider || DEFAULT_PLANNING_PROVIDER).trim(),
       planningModel: effectivePlanningModel,
       imageProvider: String(settings?.imageProvider || DEFAULT_IMAGE_PROVIDER).trim(),
-      imageModel: String(settings?.imageModel || DEFAULT_IMAGE_MODEL).trim(),
+      imageModel: effectiveImageModel,
       chatMode,
       initialized: true,
     });
@@ -116,12 +129,17 @@ export const useSettingsStore = create((set, get) => ({
     // or a stale-model migration. Otherwise an empty loadSettings() response
     // could race and clobber existing settings. Real user changes flow
     // through the explicit setters below, which each call persistSettings.
-    if (migratedApiKey || needsPlanningMigration) {
+    if (migratedApiKey || needsPlanningMigration || needsImageMigration) {
       await persistSettings(get());
     }
     if (needsPlanningMigration) {
       console.info(
         `[Storyboarder] Migrated stale planning model "${savedPlanningModel}" → "${DEFAULT_PLANNING_MODEL}". The old ID is no longer in the OpenRouter catalog we ship.`
+      );
+    }
+    if (needsImageMigration) {
+      console.info(
+        `[Storyboarder] Migrated stale image model "${savedImageModel}" → "${DEFAULT_IMAGE_MODEL}". Regenerate any shot image to replace the fallback frame.`
       );
     }
   },

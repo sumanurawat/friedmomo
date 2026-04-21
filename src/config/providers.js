@@ -94,6 +94,30 @@ export const STALE_PLANNING_MODELS = new Set([
   'meta-llama/llama-3.1-70b-instruct',
   'meta-llama/llama-3.1-405b-instruct',
 ]);
+
+/**
+ * Same idea for image models. OpenRouter's image catalog rotates even faster
+ * than the text one — every few months an older Gemini/DALL-E preview gets
+ * retired and a new one lands. Users who picked (or got onboarded with) any
+ * of these back-catalog IDs hit "No endpoints found for …" when they try to
+ * regenerate a shot, and the app falls back to the locally-composed
+ * placeholder frame — the classic "why are all my images the default ones"
+ * symptom.
+ *
+ * Same narrow rule: only reset known-dead IDs, preserve custom picks.
+ */
+export const STALE_IMAGE_MODELS = new Set([
+  // Older Gemini image previews that rotated out of the OpenRouter catalog.
+  'google/gemini-2.0-flash-exp:free',
+  'google/gemini-2.0-flash-preview-image',
+  'google/gemini-2.5-flash-image-preview',
+  'google/gemini-2.5-flash-preview-image',
+  'google/gemini-3-flash-image-preview',
+  // OpenAI image models that OpenRouter no longer routes.
+  'openai/gpt-image-1',
+  'openai/dall-e-3',
+  'openai/dall-e-2',
+]);
 export const DEFAULT_IMAGE_PROVIDER = 'openrouter';
 export const DEFAULT_IMAGE_MODEL = 'google/gemini-3.1-flash-image-preview';
 
