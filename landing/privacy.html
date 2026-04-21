@@ -36,6 +36,14 @@
         line-height: 1.7;
       }
       .privacy strong { color: #f1f5f9; }
+      .privacy code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.92em;
+        padding: 0.08em 0.35em;
+        border-radius: 4px;
+        background: rgba(148, 163, 184, 0.12);
+        color: #e2e8f0;
+      }
     </style>
   </head>
   <body>
@@ -52,56 +60,31 @@
     <section class="privacy">
       <h1>Privacy</h1>
       <p>
-        This is the whole thing: <strong>Storyboarder runs on your computer. Your stories don't leave it.</strong>
+        Storyboarder doesn't have a server. There is no "we" on the other end.
+        Your stories, API key, characters, locations, and generated images stay on your device —
+        in your browser's IndexedDB for the web app at
+        <a href="/app/" style="color:#fbbf24;">friedmomo.com/app/</a>, or in a
+        <code>~/Storyboarder</code> folder for the desktop build. We can't see any of it,
+        because there's nothing to see it with.
       </p>
 
-      <h2>What stays local</h2>
-      <ul>
-        <li>Every storyboard you make</li>
-        <li>Every character and location you create</li>
-        <li>Every image the app generates</li>
-        <li>Your OpenRouter API key</li>
-        <li>Your chat history with the assistant</li>
-      </ul>
+      <h2>The one thing that leaves your device</h2>
       <p>
-        All of this lives in a folder called <strong>Storyboarder</strong> inside your home directory.
-        You can back it up, open the files in a text editor, or copy them to another computer. They're yours.
-      </p>
-
-      <h2>What touches the network</h2>
-      <p>
-        When you ask Storyboarder to write something or generate an image, the app sends your
-        prompt from your computer <strong>directly to OpenRouter's servers</strong> (the AI platform
-        you set up during first-run). It does this using your API key. We don't run any server in between.
-      </p>
-      <p>
-        That means OpenRouter sees your prompts — the same way they would if you used the OpenRouter
-        website directly. Their privacy policy is at
+        When you ask for a story or an image, your browser sends that prompt — over HTTPS,
+        using your OpenRouter key — <strong>straight to OpenRouter</strong>. OpenRouter
+        processes it and charges a few cents against your account. That's the same path
+        you'd take using openrouter.ai directly. Their privacy policy covers what happens
+        on their side:
         <a href="https://openrouter.ai/privacy" target="_blank" rel="noopener" style="color:#fbbf24;">openrouter.ai/privacy</a>.
       </p>
-
-      <h2>What we don't collect</h2>
       <p>
-        We don't have analytics. We don't have crash reporting. We don't have a login. We don't
-        have a database. The Storyboarder app doesn't phone home to friedmomo.com for any reason,
-        ever.
-      </p>
-      <p>
-        The only exception is the <em>update check</em> — once per app launch, the app asks
-        GitHub "is there a new version?" and GitHub responds yes or no. This is standard for
-        apps that auto-update, and GitHub sees your IP address during that request.
-      </p>
-
-      <h2>If you email us</h2>
-      <p>
-        If you send us an email, we'll see your email address and whatever you said. We keep that
-        message only long enough to reply, unless you explicitly ask to be added to an update list.
+        No analytics, no crash reports, no accounts, no cookies.
       </p>
 
       <h2>Questions</h2>
       <p>
-        Email <a href="mailto:friedmomoapp@gmail.com" style="color:#fbbf24;">friedmomoapp@gmail.com</a>
-        and we'll answer. You can also find us on Instagram at
+        Email <a href="mailto:friedmomoapp@gmail.com" style="color:#fbbf24;">friedmomoapp@gmail.com</a>,
+        or find us on Instagram at
         <a href="https://instagram.com/friedmomo.app" target="_blank" rel="noopener" style="color:#fbbf24;">@friedmomo.app</a>.
       </p>
 
