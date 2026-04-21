@@ -152,12 +152,26 @@
                 <ol>
                   <li>Double-click the downloaded DMG.</li>
                   <li>Drag the Storyboarder icon into your Applications folder.</li>
-                  <li><strong>Right-click</strong> the app icon in Applications and choose <strong>Open</strong>.
-                    (Double-clicking won't work the very first time.)</li>
-                  <li>You'll see "Apple cannot check this app for malicious software." That's the warning.
-                    Click <strong>Open</strong>.</li>
-                  <li>Done — the app opens. Next time, just double-click like any other app.</li>
+                  <li>
+                    <strong>Open Terminal</strong> (press <kbd>⌘ Space</kbd>, type "Terminal", hit Enter),
+                    paste this line, and press Enter:
+                    <pre><code>xattr -cr /Applications/Storyboarder.app</code></pre>
+                    This tells macOS the app is safe. You only do it once.
+                  </li>
+                  <li>Now double-click Storyboarder in Applications. It opens.</li>
                 </ol>
+                <p class="help-note">
+                  <strong>Why?</strong> Storyboarder is a new indie app — Apple doesn't know us yet and
+                  flags downloads with a scary "could not verify" dialog that doesn't give you a way
+                  through. The one line above removes Apple's download-quarantine flag from the app.
+                  (You can verify the command doesn't do anything else by searching for
+                  <code>xattr</code> — it's a standard macOS tool.)
+                </p>
+                <p class="help-note">
+                  <strong>No Terminal?</strong> Open <strong>System Settings → Privacy &amp; Security</strong>,
+                  scroll down to <strong>Security</strong>. After you try to open Storyboarder once and
+                  macOS blocks it, an <strong>Open Anyway</strong> button appears there.
+                </p>
               </div>
               <div>
                 <h4>On Windows</h4>
