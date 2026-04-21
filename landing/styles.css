@@ -212,7 +212,7 @@ main {
 .how {
   padding: 4rem 0;
 }
-.how h2, .install h2, .promise h2, .footer-cta h2 {
+.how h2, .install h2, .footer-cta h2 {
   font-family: 'Instrument Serif', serif;
   font-style: italic;
   font-size: clamp(2rem, 4vw, 2.8rem);
@@ -416,34 +416,6 @@ main {
   font-family: ui-monospace, Menlo, monospace;
   font-size: 0.85em;
   color: var(--amber);
-}
-
-/* PROMISE */
-.promise {
-  padding: 4rem 0;
-  max-width: 720px;
-  margin: 0 auto;
-}
-.promise-list {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  gap: 1.25rem;
-}
-.promise-list li {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 1.3rem 1.6rem;
-  color: var(--muted);
-  font-size: 0.95rem;
-  line-height: 1.6;
-}
-.promise-list strong {
-  color: var(--text);
-  display: block;
-  margin-bottom: 0.4rem;
-  font-weight: 600;
 }
 
 /* FOOTER CTA */
