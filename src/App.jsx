@@ -814,8 +814,10 @@ export default function App() {
           onValidate={async (apiKey) => validateKey({ provider: 'openrouter', apiKey })}
           onComplete={async ({ apiKey }) => {
             await settingsStore.setProviderKey('openrouter', apiKey);
-            // Planning model is pre-set to DEFAULT_PLANNING_MODEL (Opus 4.7)
-            // by the settings store. Users can change it in Settings → Models.
+            // Pin the planning model to DEFAULT_PLANNING_MODEL on fresh
+            // onboarding so new users always start on the current curated
+            // default (not whatever leaked in from a prior catalog). Users
+            // can change it in Settings → Models anytime.
             await settingsStore.setPlanningModel(DEFAULT_PLANNING_MODEL);
           }}
         />

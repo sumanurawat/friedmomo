@@ -35,16 +35,16 @@ export const PROVIDERS = [
 export const SUGGESTED_MODELS = {
   openrouter: {
     planning: [
-      // --- Strong / balanced (default tier) ---
-      { id: 'anthropic/claude-sonnet-4.6', label: 'Claude Sonnet 4.6', tier: 'Strong', recommended: true },
-      { id: 'openai/gpt-5.4', label: 'GPT-5.4', tier: 'Strong' },
-      { id: 'openai/gpt-5.4-mini', label: 'GPT-5.4 Mini', tier: 'Strong' },
-
-      // --- Flagship / strongest reasoning (slower, pricier) ---
-      { id: 'anthropic/claude-opus-4.7', label: 'Claude Opus 4.7', tier: 'Flagship' },
+      // --- Flagship / strongest reasoning (default) ---
+      { id: 'anthropic/claude-opus-4.7', label: 'Claude Opus 4.7', tier: 'Flagship', recommended: true },
       { id: 'anthropic/claude-opus-4.6', label: 'Claude Opus 4.6', tier: 'Flagship' },
       { id: 'openai/gpt-5.4-pro', label: 'GPT-5.4 Pro', tier: 'Flagship' },
       { id: 'google/gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', tier: 'Flagship' },
+
+      // --- Strong / balanced (faster, cheaper) ---
+      { id: 'anthropic/claude-sonnet-4.6', label: 'Claude Sonnet 4.6', tier: 'Strong' },
+      { id: 'openai/gpt-5.4', label: 'GPT-5.4', tier: 'Strong' },
+      { id: 'openai/gpt-5.4-mini', label: 'GPT-5.4 Mini', tier: 'Strong' },
 
       // --- Fast / cost-effective ---
       { id: 'google/gemini-3-flash-preview', label: 'Gemini 3 Flash', tier: 'Fast' },
@@ -59,12 +59,41 @@ export const SUGGESTED_MODELS = {
 };
 
 export const DEFAULT_PLANNING_PROVIDER = 'openrouter';
-// Sonnet 4.6 — same Claude family as Opus (so the planner prompt's JSON
-// contract holds perfectly), but 2-3× faster to stream and ~40% cheaper.
-// Tuned for the first-run experience: users should see a finished storyboard
-// in seconds, not minutes. Users who want deeper reasoning can switch to
-// Opus 4.7 in Settings → Models.
-export const DEFAULT_PLANNING_MODEL = 'anthropic/claude-sonnet-4.6';
+// Opus 4.7 — strongest reasoning in the Claude family, best at following the
+// planner's strict JSON contract without dropping updates. Slower to stream
+// than Sonnet (2-4 min for a full bootstrap vs 30-45s) but the quality and
+// structure-compliance win out for storyboarding where partial/prose-only
+// responses leave the user staring at an empty board. Users who want speed
+// over reasoning can switch to Sonnet 4.6 in Settings → Models.
+export const DEFAULT_PLANNING_MODEL = 'anthropic/claude-opus-4.7';
+
+/**
+ * Model IDs that were defaults (or common picks) in earlier builds and are
+ * either deprecated on OpenRouter now or replaced by a newer point release.
+ * On init, the settings store migrates any saved planningModel matching one
+ * of these to the current DEFAULT_PLANNING_MODEL — so a user who onboarded
+ * three weeks ago isn't stuck on a silently-rotated-out model forever.
+ *
+ * Narrow on purpose: we only migrate known-stale IDs, never custom picks
+ * from the live OpenRouter catalog that aren't in our curated list.
+ */
+export const STALE_PLANNING_MODELS = new Set([
+  'openai/gpt-4',
+  'openai/gpt-4-turbo',
+  'openai/gpt-4o',
+  'openai/gpt-4o-mini',
+  'openai/gpt-4.1',
+  'openai/gpt-4.1-mini',
+  'openai/gpt-4.1-nano',
+  'anthropic/claude-3-opus',
+  'anthropic/claude-3-sonnet',
+  'anthropic/claude-3.5-sonnet',
+  'anthropic/claude-3.5-haiku',
+  'anthropic/claude-sonnet-4',
+  'meta-llama/llama-3-70b-instruct',
+  'meta-llama/llama-3.1-70b-instruct',
+  'meta-llama/llama-3.1-405b-instruct',
+]);
 export const DEFAULT_IMAGE_PROVIDER = 'openrouter';
 export const DEFAULT_IMAGE_MODEL = 'google/gemini-3.1-flash-image-preview';
 

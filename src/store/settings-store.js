@@ -8,6 +8,7 @@ import {
   DEFAULT_PLANNING_MODEL,
   DEFAULT_IMAGE_PROVIDER,
   DEFAULT_IMAGE_MODEL,
+  STALE_PLANNING_MODELS,
   getSuggestedModels,
 } from '../config/providers.js';
 
@@ -90,23 +91,38 @@ export const useSettingsStore = create((set, get) => ({
       DEFAULT_CHAT_MODE
     );
 
+    // Migrate stale planningModel IDs. If the saved model is one of the
+    // catalog rotations we've seen come and go (see STALE_PLANNING_MODELS),
+    // fall back to the current default. Preserves user custom picks — we
+    // only migrate IDs we know are dead or downgraded.
+    const savedPlanningModel = String(settings?.planningModel || '').trim();
+    const needsPlanningMigration =
+      savedPlanningModel && STALE_PLANNING_MODELS.has(savedPlanningModel);
+    const effectivePlanningModel = needsPlanningMigration
+      ? DEFAULT_PLANNING_MODEL
+      : savedPlanningModel || DEFAULT_PLANNING_MODEL;
+
     set({
       providerKeys,
       planningProvider: String(settings?.planningProvider || DEFAULT_PLANNING_PROVIDER).trim(),
-      planningModel: String(settings?.planningModel || DEFAULT_PLANNING_MODEL).trim(),
+      planningModel: effectivePlanningModel,
       imageProvider: String(settings?.imageProvider || DEFAULT_IMAGE_PROVIDER).trim(),
       imageModel: String(settings?.imageModel || DEFAULT_IMAGE_MODEL).trim(),
       chatMode,
       initialized: true,
     });
 
-    // Only persist on init if we actually transformed something (legacy key
-    // migration). Otherwise, a race where loadSettings() returns {} (e.g. the
-    // backend was briefly unavailable) would PUT an empty payload back and
-    // clobber an existing settings file. Real user changes flow through the
-    // explicit setters below, which each call persistSettings.
-    if (migratedApiKey) {
+    // Persist if we transformed anything — either a legacy apiKey migration
+    // or a stale-model migration. Otherwise an empty loadSettings() response
+    // could race and clobber existing settings. Real user changes flow
+    // through the explicit setters below, which each call persistSettings.
+    if (migratedApiKey || needsPlanningMigration) {
       await persistSettings(get());
+    }
+    if (needsPlanningMigration) {
+      console.info(
+        `[Storyboarder] Migrated stale planning model "${savedPlanningModel}" → "${DEFAULT_PLANNING_MODEL}". The old ID is no longer in the OpenRouter catalog we ship.`
+      );
     }
   },
 
