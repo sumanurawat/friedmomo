@@ -337,15 +337,37 @@ export default function ActRow({
 
                 {isCollapsed ? null : <div className="sb-sequence-scenes">
                   {scenes.length === 0 ? (
-                    <button
-                      type="button"
-                      className="sb-empty-seq sb-empty-seq-btn"
-                      style={{ borderColor: `${color}55` }}
-                      onClick={() => setComposer({ sequenceNumber: sequence.number, mode: 'manual' })}
-                    >
-                      <span>+</span>
-                      <small>Click to add shot</small>
-                    </button>
+                    <div className="sb-empty-seq-row">
+                      {/* AI rescue button — primary action for the common
+                          case where the planner emitted a Sequence without
+                          its paired Shot. One click fires a focused request
+                          that only adds the missing Shot. */}
+                      <button
+                        type="button"
+                        className="sb-empty-seq sb-empty-seq-btn sb-empty-seq-ai"
+                        style={{ borderColor: `${color}88` }}
+                        onClick={() => onGenerateSection?.({
+                          actNumber: act.number,
+                          sequenceNumber: sequence.number,
+                          count: 1,
+                        })}
+                        title="Ask the AI to draft the missing Shot for this Sequence"
+                      >
+                        <span className="sb-empty-seq-ai-badge" aria-hidden="true">AI</span>
+                        <small>Draft Shot with AI</small>
+                      </button>
+                      {/* Escape hatch — if the user prefers to write it by
+                          hand, same manual composer as before. */}
+                      <button
+                        type="button"
+                        className="sb-empty-seq sb-empty-seq-btn sb-empty-seq-manual"
+                        style={{ borderColor: `${color}55` }}
+                        onClick={() => setComposer({ sequenceNumber: sequence.number, mode: 'manual' })}
+                      >
+                        <span>+</span>
+                        <small>Add manually</small>
+                      </button>
+                    </div>
                   ) : (
                     scenes.map((scene, index) => (
                       <SceneCard

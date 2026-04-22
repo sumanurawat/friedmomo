@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { sendMessage, generateTitle, generateStoryStyle } from '../services/ai-client.js';
+import { logger } from '../services/logger.js';
 
 import {
   applyUpdates,
@@ -1996,13 +1997,12 @@ export const useProjectStore = create((set, get) => ({
           baseProject.entities
         );
 
-        // Diagnostic trace — dumped to console on every chat completion so that
-        // "AI claims it did the work but nothing lands" regressions are
-        // immediately visible. Log budget is small (under 1 KB) — safe to leave
-        // on in production. If the counts object is all zeros, the model
-        // returned prose instead of structured updates and the storyboard
-        // stayed at whatever scaffold/state it was in before.
-        console.info('[Storyboarder] chat response parsed', {
+        // Diagnostic trace — goes through logger so it's captured in the
+        // ring buffer and shows up in sbDumpChatLogs() exports. Counts tell
+        // us at a glance whether the model emitted enough updates or lied
+        // (chat claims N sequences added but sequences_add has fewer).
+        // Log budget is small (<1 KB) — safe to leave on in production.
+        logger.info('ai.chat.parsed', {
           model: settings.planningModel,
           rawBytes: fullText.length,
           chatPreview: (parsed.chat || '').slice(0, 120),

@@ -526,15 +526,18 @@ export default function App() {
 
     const count = Math.max(1, Number(payload?.count || 1));
     const prompt = String(payload?.prompt || '').trim();
+    // Enforce the one-Shot-per-Sequence rule at the request level so the
+    // rescue button can't accidentally ask for two shots in the same
+    // sequence and create a rule violation on purpose.
+    const cappedCount = Math.min(count, 1);
     const userMessage = [
-      `Generate ${count} shot${count > 1 ? 's' : ''} for Sequence ${actNumber}, Scene ${sequenceNumber}.`,
-      prompt || 'Keep narrative progression tight and production-friendly.',
-      'Return concise shot updates and keep existing characters consistent.',
-      'Append only new shots for this exact scene. Do not modify or reorder existing shots.',
+      `Draft exactly ${cappedCount} Shot for Act ${actNumber}, Sequence ${sequenceNumber}.`,
+      prompt || 'Match the Sequence title and continuity with the rest of the board.',
+      'Emit only updates.scenes_add with exactly one entry targeting this Act + Sequence. Do not modify or reorder existing Shots. Do not add Sequences. Do not touch characters or locations unless this Shot genuinely introduces a new one.',
     ].join(' ');
 
     projectStore.sendUserMessage(
-      prompt || `Generate ${count} shot${count > 1 ? 's' : ''} for this scene.`,
+      prompt || `Draft Shot for Act ${actNumber}, Sequence ${sequenceNumber}.`,
       { apiContent: userMessage }
     );
   }
