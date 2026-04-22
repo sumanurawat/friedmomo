@@ -910,13 +910,14 @@
 }
 
 /* Paired rescue buttons inside an empty Sequence — AI primary on the left,
-   manual composer on the right. Grid splits them ~58/42 so the AI option
-   reads as the primary action without drowning the manual one. Appears
-   only when a Sequence has zero Shots (see ActRow.jsx empty-state branch). */
+   manual composer on the right. Equal widths keep the row visually
+   balanced; the violet accent on the AI variant does the "primary" work
+   without needing extra pixels. Appears only when a Sequence has zero
+   Shots (see ActRow.jsx empty-state branch). */
 .sb-empty-seq-row {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.45rem;
   width: 100%;
 }
