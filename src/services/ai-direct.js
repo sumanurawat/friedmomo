@@ -315,11 +315,14 @@ export async function generateTitle(userMessage) {
  * Single-image generation. Matches the image payload shape that backend route
  * sends upstream — OpenRouter accepts it unchanged.
  */
-export async function generateImage({ prompt, model }) {
+export async function generateImage({ prompt, model, regenId, attemptNumber }) {
   const config = getAiConfig();
   const provider = config.imageProvider;
   const resolvedModel = model || config.imageModel;
   const clientRequestId = makeClientRequestId();
+  const attemptId = `at-${Math.random().toString(36).slice(2, 8)}`;
+  const promptStr = String(prompt || '');
+  const promptChars = promptStr.length;
 
   if (!resolvedModel) throw new Error('No image model selected. Choose one in Settings.');
   const apiKey = getApiKey(provider);
@@ -329,12 +332,20 @@ export async function generateImage({ prompt, model }) {
   const timeoutHandle = setTimeout(() => controller.abort(), IMAGE_TIMEOUT_MS);
   const startedAt = performance.now();
 
-  logger.info('ai.image.send', {
+  // Rich start log — every subsequent event carries regenId + attemptId so
+  // a single attempt can be traced end-to-end even across interleaved
+  // concurrent image jobs.
+  logger.info('img.generate.start', {
+    regenId: regenId || null,
+    attemptId,
+    attemptNumber: attemptNumber || null,
     clientRequestId,
     mode: 'web',
     provider,
     model: resolvedModel,
-    promptChars: String(prompt || '').length,
+    promptChars,
+    promptPreview: promptStr.slice(0, 180),
+    timeoutMs: IMAGE_TIMEOUT_MS,
   });
 
   try {
@@ -344,7 +355,7 @@ export async function generateImage({ prompt, model }) {
       headers: openRouterHeaders(apiKey),
       body: JSON.stringify({
         model: resolvedModel,
-        messages: [{ role: 'user', content: String(prompt) }],
+        messages: [{ role: 'user', content: promptStr }],
         modalities: ['image', 'text'],
         image_config: { aspect_ratio: '16:9' },
         stream: false,
@@ -352,40 +363,126 @@ export async function generateImage({ prompt, model }) {
     });
     clearTimeout(timeoutHandle);
 
+    const ttfbMs = Math.round(performance.now() - startedAt);
+
     if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
+      // Capture the raw body AS TEXT first so we can log a preview even if
+      // the payload isn't valid JSON. This is the single most useful signal
+      // when OpenRouter returns a weird error shape.
+      const rawBody = await response.text().catch(() => '');
+      let errData = {};
+      try { errData = JSON.parse(rawBody); } catch { /* keep empty object */ }
+
       const err = new Error(errData?.error?.message || errData?.error || `HTTP ${response.status}`);
       err.status = response.status;
       err.upstreamStatus = response.status;
-      // OpenRouter returns a numeric `retry_after` header or payload field on 429.
-      const retryAfter = Number(response.headers.get('retry-after') || errData?.error?.metadata?.retry_after || 0);
+      err.diagnosticCode = response.status === 429 ? 'rate_limited' : 'upstream_http_error';
+
+      const retryAfter = Number(
+        response.headers.get('retry-after') || errData?.error?.metadata?.retry_after || 0
+      );
       if (retryAfter > 0) err.retryAfterSeconds = retryAfter;
-      logger.error('ai.image.error', {
+
+      logger.error('img.generate.http_error', {
+        regenId: regenId || null,
+        attemptId,
+        attemptNumber: attemptNumber || null,
         clientRequestId,
-        mode: 'web',
         provider,
         model: resolvedModel,
         status: response.status,
-        durationMs: Math.round(performance.now() - startedAt),
-        message: err.message,
+        durationMs: ttfbMs,
+        retryAfterSeconds: retryAfter > 0 ? retryAfter : null,
+        errorCode: errData?.error?.code || null,
+        errorType: errData?.error?.type || null,
+        errorMessage: err.message,
+        // First 500 chars of the raw body — enough to see what upstream
+        // actually said without bloating log storage.
+        bodyPreview: rawBody.slice(0, 500),
+        bodyBytes: rawBody.length,
       });
       throw err;
     }
 
-    const data = await response.json();
-    const imageUrl = extractImageUrl(data);
-    if (!imageUrl) {
-      const err = new Error('Model did not return an image');
-      err.diagnosticCode = 'no_image_empty_response';
+    const rawBody = await response.text();
+    let data = {};
+    try {
+      data = JSON.parse(rawBody);
+    } catch (parseErr) {
+      logger.error('img.generate.parse_error', {
+        regenId: regenId || null,
+        attemptId,
+        clientRequestId,
+        provider,
+        model: resolvedModel,
+        durationMs: ttfbMs,
+        parseError: String(parseErr?.message || parseErr),
+        bodyPreview: rawBody.slice(0, 500),
+        bodyBytes: rawBody.length,
+      });
+      const err = new Error('Image endpoint returned non-JSON response.');
+      err.diagnosticCode = 'parse_error';
       throw err;
     }
 
-    logger.info('ai.image.done', {
+    const imageUrl = extractImageUrl(data);
+    const choice = data?.choices?.[0];
+    const message = choice?.message || {};
+    const imagesArray = Array.isArray(message.images) ? message.images : [];
+    const textContent = typeof message.content === 'string' ? message.content : '';
+
+    if (!imageUrl) {
+      // CRITICAL log for debugging content-filter blocks: models that decline
+      // to generate an image usually return a text explanation instead of the
+      // image. Capture that text + the response shape so we know why.
+      logger.error('img.generate.no_image', {
+        regenId: regenId || null,
+        attemptId,
+        attemptNumber: attemptNumber || null,
+        clientRequestId,
+        provider,
+        model: resolvedModel,
+        durationMs: ttfbMs,
+        responseShape: {
+          choicesCount: Array.isArray(data?.choices) ? data.choices.length : 0,
+          imagesCount: imagesArray.length,
+          hasText: Boolean(textContent),
+          textChars: textContent.length,
+          finishReason: choice?.finish_reason || null,
+          messageKeys: Object.keys(message),
+        },
+        // The text the model emitted instead of the image — often reveals a
+        // content-policy refusal or an instruction-ignorance issue.
+        textResponse: textContent.slice(0, 400),
+        promptPreview: promptStr.slice(0, 120),
+      });
+      const err = new Error(
+        textContent
+          ? `Model returned text instead of an image: "${textContent.slice(0, 140)}…"`
+          : 'Model did not return an image'
+      );
+      err.diagnosticCode = textContent ? 'no_image_text_only' : 'no_image_empty_response';
+      err.diagnosticMessage = textContent || 'Empty choices[].message.images on success response.';
+      throw err;
+    }
+
+    // Success — log the body shape so we can audit latency trends and
+    // verify which model actually served the request.
+    logger.info('img.generate.ok', {
+      regenId: regenId || null,
+      attemptId,
+      attemptNumber: attemptNumber || null,
       clientRequestId,
-      mode: 'web',
       provider,
       model: resolvedModel,
-      durationMs: Math.round(performance.now() - startedAt),
+      modelReturned: data?.model || null,
+      durationMs: ttfbMs,
+      bodyBytes: rawBody.length,
+      imageUrlKind: imageUrl.startsWith('data:')
+        ? `data:${imageUrl.slice(5, 25).split(';')[0]}`
+        : 'remote_url',
+      imageUrlBytes: imageUrl.length,
+      finishReason: choice?.finish_reason || null,
     });
 
     return {
@@ -393,27 +490,40 @@ export async function generateImage({ prompt, model }) {
       model: resolvedModel,
       provider,
       diagnosticCode: 'success',
-      latencyMs: Math.round(performance.now() - startedAt),
+      latencyMs: ttfbMs,
     };
   } catch (error) {
     clearTimeout(timeoutHandle);
     if (error?.name === 'AbortError') {
-      logger.error('ai.image.timeout', {
+      logger.error('img.generate.timeout', {
+        regenId: regenId || null,
+        attemptId,
+        attemptNumber: attemptNumber || null,
         clientRequestId,
         provider,
         model: resolvedModel,
         timeoutMs: IMAGE_TIMEOUT_MS,
+        elapsedMs: Math.round(performance.now() - startedAt),
       });
       const err = new Error(`Image generation timed out after ${IMAGE_TIMEOUT_MS / 1000}s.`);
       err.diagnosticCode = 'timeout';
       throw err;
     }
-    logger.error('ai.image.exception', {
-      clientRequestId,
-      provider,
-      model: resolvedModel,
-      message: error?.message,
-    });
+    // Only log an extra line if we haven't already logged a specific event
+    // (http_error / parse_error / no_image each log their own). Detect by
+    // looking at diagnosticCode — those paths set it before throwing.
+    if (!error?.diagnosticCode) {
+      logger.error('img.generate.exception', {
+        regenId: regenId || null,
+        attemptId,
+        clientRequestId,
+        provider,
+        model: resolvedModel,
+        errorName: error?.name,
+        errorMessage: error?.message,
+        elapsedMs: Math.round(performance.now() - startedAt),
+      });
+    }
     throw error;
   }
 }

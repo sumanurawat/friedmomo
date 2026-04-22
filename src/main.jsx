@@ -1,11 +1,14 @@
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
-import { installGlobalErrorHandlers, logger } from './services/logger.js'
+import { installGlobalErrorHandlers, installDebugHelpers, logger } from './services/logger.js'
 import { IS_WEB } from './services/platform.js'
 
 // Capture anything that slips past explicit try/catch — reported to /api/log.
 installGlobalErrorHandlers();
+// Attach window.sbDumpLogs() / sbDumpImageLogs() helpers so users can copy
+// recent log events to clipboard from the DevTools console during triage.
+installDebugHelpers();
 logger.info('app.boot', {
   mode: IS_WEB ? 'web' : 'electron',
   userAgent: navigator.userAgent,

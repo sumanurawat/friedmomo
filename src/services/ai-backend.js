@@ -261,11 +261,13 @@ export async function generateTitle(userMessage) {
 /**
  * Generate an image via the backend proxy.
  */
-export async function generateImage({ prompt, model }) {
+export async function generateImage({ prompt, model, regenId, attemptNumber }) {
   const config = getAiConfig();
   const provider = config.imageProvider;
   const resolvedModel = model || config.imageModel;
   const clientRequestId = makeClientRequestId();
+  const attemptId = `at-${Math.random().toString(36).slice(2, 8)}`;
+  const promptStr = String(prompt || '');
 
   if (!resolvedModel) throw new Error('No image model selected. Choose one in Settings.');
 
@@ -273,11 +275,17 @@ export async function generateImage({ prompt, model }) {
   const timeoutHandle = setTimeout(() => controller.abort(), IMAGE_TIMEOUT_MS);
   const startedAt = performance.now();
 
-  logger.info('ai.image.send', {
+  logger.info('img.generate.start', {
+    regenId: regenId || null,
+    attemptId,
+    attemptNumber: attemptNumber || null,
     clientRequestId,
+    mode: 'electron',
     provider,
     model: resolvedModel,
-    promptChars: String(prompt || '').length,
+    promptChars: promptStr.length,
+    promptPreview: promptStr.slice(0, 180),
+    timeoutMs: IMAGE_TIMEOUT_MS,
   });
 
   try {
@@ -288,52 +296,78 @@ export async function generateImage({ prompt, model }) {
         'Content-Type': 'application/json',
         'X-Client-Request-Id': clientRequestId,
       },
-      body: JSON.stringify({ provider, model: resolvedModel, prompt }),
+      body: JSON.stringify({ provider, model: resolvedModel, prompt: promptStr }),
     });
     clearTimeout(timeoutHandle);
     const serverRequestId = response.headers.get('X-Request-Id');
+    const ttfbMs = Math.round(performance.now() - startedAt);
 
     if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      logger.error('ai.image.error', {
+      const rawBody = await response.text().catch(() => '');
+      let errData = {};
+      try { errData = JSON.parse(rawBody); } catch { /* keep empty */ }
+      logger.error('img.generate.http_error', {
+        regenId: regenId || null,
+        attemptId,
+        attemptNumber: attemptNumber || null,
         clientRequestId,
         serverRequestId,
         provider,
         model: resolvedModel,
         status: response.status,
-        durationMs: Math.round(performance.now() - startedAt),
-        message: errData?.error,
+        durationMs: ttfbMs,
+        errorMessage: errData?.error || `HTTP ${response.status}`,
+        bodyPreview: rawBody.slice(0, 500),
+        bodyBytes: rawBody.length,
       });
-      throw new Error(errData?.error || `HTTP ${response.status}`);
+      const err = new Error(errData?.error || `HTTP ${response.status}`);
+      err.status = response.status;
+      err.upstreamStatus = response.status;
+      err.diagnosticCode = response.status === 429 ? 'rate_limited' : 'upstream_http_error';
+      throw err;
     }
 
     const data = await response.json();
-    logger.info('ai.image.done', {
+    logger.info('img.generate.ok', {
+      regenId: regenId || null,
+      attemptId,
+      attemptNumber: attemptNumber || null,
       clientRequestId,
       serverRequestId,
       provider,
       model: resolvedModel,
-      durationMs: Math.round(performance.now() - startedAt),
+      durationMs: ttfbMs,
     });
     return data;
   } catch (error) {
     clearTimeout(timeoutHandle);
     if (error?.name === 'AbortError') {
-      logger.error('ai.image.timeout', {
+      logger.error('img.generate.timeout', {
+        regenId: regenId || null,
+        attemptId,
+        attemptNumber: attemptNumber || null,
         clientRequestId,
         provider,
         model: resolvedModel,
         timeoutMs: IMAGE_TIMEOUT_MS,
+        elapsedMs: Math.round(performance.now() - startedAt),
       });
-      throw new Error(`Image generation timed out after ${IMAGE_TIMEOUT_MS / 1000}s.`);
+      const err = new Error(`Image generation timed out after ${IMAGE_TIMEOUT_MS / 1000}s.`);
+      err.diagnosticCode = 'timeout';
+      throw err;
     }
-    logger.error('ai.image.exception', {
-      clientRequestId,
-      provider,
-      model: resolvedModel,
-      message: error?.message,
-      stack: error?.stack,
-    });
+    if (!error?.diagnosticCode) {
+      logger.error('img.generate.exception', {
+        regenId: regenId || null,
+        attemptId,
+        clientRequestId,
+        provider,
+        model: resolvedModel,
+        errorName: error?.name,
+        errorMessage: error?.message,
+        elapsedMs: Math.round(performance.now() - startedAt),
+      });
+    }
     throw error;
   }
 }

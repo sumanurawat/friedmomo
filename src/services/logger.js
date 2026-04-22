@@ -37,6 +37,20 @@ let flushing = false;
 const FLUSH_DEBOUNCE_MS = 500;
 const MAX_BATCH = 50;
 
+// Ring buffer of recent log events — survives even after events flush to
+// the backend (or get discarded in web mode). Powers window.sbDumpLogs()
+// so a user can paste their recent activity into a bug report without
+// needing the DevTools "save as..." flow.
+const HISTORY_MAX = 500;
+const history = [];
+
+function rememberInHistory(entry) {
+  history.push(entry);
+  if (history.length > HISTORY_MAX) {
+    history.splice(0, history.length - HISTORY_MAX);
+  }
+}
+
 function scheduleFlush() {
   if (flushTimer) return;
   flushTimer = setTimeout(flush, FLUSH_DEBOUNCE_MS);
@@ -88,6 +102,7 @@ function emit(level, event, fields = {}) {
   const fn = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
   fn.call(console, `[${event}]`, fields);
 
+  rememberInHistory(entry);
   queue.push(entry);
   scheduleFlush();
 }
@@ -119,6 +134,77 @@ export const logger = {
 
 export function getSessionId() {
   return SESSION_ID;
+}
+
+/**
+ * Return the last N log events as a plain array — used by the window helpers
+ * below and by any future diagnostic panels. `eventPrefix` filters by event
+ * name prefix (e.g. "img." to get only image-related events).
+ */
+export function getHistory({ limit = HISTORY_MAX, eventPrefix = '' } = {}) {
+  const source = eventPrefix
+    ? history.filter((entry) => String(entry.event || '').startsWith(eventPrefix))
+    : history;
+  if (limit >= source.length) return source.slice();
+  return source.slice(source.length - limit);
+}
+
+/**
+ * One-liner a user can type in DevTools Console:
+ *   sbDumpLogs()          — copies the whole session's log history
+ *   sbDumpLogs('img.')    — copies only image-related events
+ *   sbDumpLogs('', 100)   — last 100 events of any kind
+ *
+ * The payload lands on the clipboard as a pretty-printed JSON blob, ready
+ * to paste into a bug report. Falls back to console.log if clipboard write
+ * is blocked (e.g. no secure context).
+ */
+export function installDebugHelpers() {
+  if (typeof window === 'undefined') return;
+
+  const dump = async (eventPrefix = '', limit = HISTORY_MAX) => {
+    const entries = getHistory({ limit, eventPrefix });
+    const payload = {
+      sessionId: SESSION_ID,
+      exportedAt: new Date().toISOString(),
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+      url: typeof location !== 'undefined' ? location.href : null,
+      filter: eventPrefix || null,
+      count: entries.length,
+      entries,
+    };
+    const json = JSON.stringify(payload, null, 2);
+
+    try {
+      await navigator.clipboard.writeText(json);
+      console.info(
+        `[sbDumpLogs] Copied ${entries.length} log entries to clipboard` +
+        (eventPrefix ? ` (filter: "${eventPrefix}")` : '') +
+        '. Paste into a bug report or chat.'
+      );
+      return entries.length;
+    } catch (err) {
+      console.warn('[sbDumpLogs] Clipboard write failed — dumping to console instead:', err);
+      console.log(json);
+      return entries.length;
+    }
+  };
+
+  // Attach under a short stable name the user can actually remember.
+  window.sbDumpLogs = dump;
+  window.sbDumpImageLogs = () => dump('img.');
+  window.sbDumpChatLogs = () => dump('ai.chat');
+  window.sbLogHistory = () => getHistory();
+
+  // One-time hint so users discover these without having to find docs.
+  console.info(
+    '[Storyboarder] Debug helpers installed. In this console you can run:\n' +
+    '  sbDumpImageLogs()   — copy image-generation logs to clipboard\n' +
+    '  sbDumpChatLogs()    — copy chat/planner logs to clipboard\n' +
+    '  sbDumpLogs()        — copy EVERY log event to clipboard\n' +
+    '  sbDumpLogs("img.", 50) — last 50 events matching "img." prefix\n' +
+    '  sbLogHistory()      — return the raw array (no clipboard)\n'
+  );
 }
 
 /**

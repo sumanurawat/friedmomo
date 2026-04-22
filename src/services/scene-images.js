@@ -1,5 +1,10 @@
 import { generateImage } from './ai-client.js';
+import { logger } from './logger.js';
 import { saveImage, resolveImagePath } from './storage.js';
+
+function makeRegenId() {
+  return `rg-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 const IMAGE_PROMPT_MAX_CHARS = 1200;
 const IMAGE_PROMPT_TARGET_CHARS = 900;
@@ -83,6 +88,20 @@ export async function regenerateSceneImages(project, options = {}) {
   async function runQueueItem(item, index) {
     const { scene, prompt, promptHash } = item;
     startedCount += 1;
+    const regenId = makeRegenId();
+    const regenStartedAt = performance.now();
+
+    logger.info('img.regen.start', {
+      regenId,
+      sceneId: scene.id,
+      sceneTitle: scene.title,
+      imageModel,
+      fallbackImageModel: fallbackImageModel || null,
+      maxAttempts,
+      promptChars: String(prompt || '').length,
+      promptPreview: String(prompt || '').slice(0, 160),
+      queuePosition: `${index + 1}/${totalCount}`,
+    });
 
     onProgress?.({
       stage: 'started',
@@ -103,6 +122,7 @@ export async function regenerateSceneImages(project, options = {}) {
         fallbackImageModel,
         generateImageImpl,
         maxAttempts,
+        regenId,
         onRetry: ({ attemptNumber, delayMs, error }) => {
           onProgress?.({
             stage: 'retrying',
@@ -129,6 +149,17 @@ export async function regenerateSceneImages(project, options = {}) {
         imageModel,
       });
 
+      logger.info('img.regen.success', {
+        regenId,
+        sceneId: scene.id,
+        sceneTitle: scene.title,
+        attemptsUsed: imageResult?.attemptsUsed || null,
+        usedFallbackModel: Boolean(imageResult?.usedFallbackModel),
+        finalModel: imageResult?.model || imageModel,
+        totalMs: Math.round(performance.now() - regenStartedAt),
+        imageLatencyMs: imageResult?.latencyMs || null,
+      });
+
       generatedCount += 1;
       updatedSceneIds.push(scene.id);
       onProgress?.({
@@ -144,13 +175,20 @@ export async function regenerateSceneImages(project, options = {}) {
         scenePatch: buildSceneImagePatch(scene),
       });
     } catch (error) {
-      console.error('[Storyboarder] Scene image generation failed after retries.', {
+      logger.error('img.regen.fail', {
+        regenId,
         sceneId: scene?.id,
         sceneTitle: scene?.title,
         imageModel,
+        fallbackImageModel: fallbackImageModel || null,
+        totalMs: Math.round(performance.now() - regenStartedAt),
         diagnosticCode: String(error?.diagnosticCode || ''),
         diagnosticMessage: String(error?.diagnosticMessage || error?.message || ''),
         status: Number(error?.status || 0) || null,
+        upstreamStatus: Number(error?.upstreamStatus || 0) || null,
+        // Short stack so we can trace where the terminal error came from
+        // when retry logic itself misbehaves.
+        errorStack: String(error?.stack || '').split('\n').slice(0, 4).join('\n'),
       });
       applyFallbackSceneImage(scene, {
         error,
@@ -215,6 +253,7 @@ async function generateSceneImageWithRetries({
   fallbackImageModel,
   generateImageImpl,
   maxAttempts,
+  regenId,
   onRetry,
 }) {
   let lastError = null;
@@ -225,6 +264,8 @@ async function generateSceneImageWithRetries({
       const imageResult = await generateImageImpl({
         model: imageModel,
         prompt,
+        regenId,
+        attemptNumber,
       });
 
       return {
@@ -235,17 +276,32 @@ async function generateSceneImageWithRetries({
     } catch (error) {
       lastError = error;
       if (!shouldRetryImageError(error, attemptNumber, maxAttempts)) {
+        logger.warn('img.regen.give_up', {
+          regenId,
+          sceneId: scene?.id,
+          sceneTitle: scene?.title,
+          imageModel,
+          attemptNumber,
+          maxAttempts,
+          reason: 'non-retryable error or attempt cap reached',
+          diagnosticCode: String(error?.diagnosticCode || ''),
+          diagnosticMessage: String(error?.diagnosticMessage || error?.message || ''),
+          status: Number(error?.status || 0) || null,
+        });
         break;
       }
 
       const delayMs = getRetryDelayMs(attemptNumber, error);
-      console.warn('[Storyboarder] Retrying scene image generation.', {
+      logger.warn('img.regen.retry', {
+        regenId,
         sceneId: scene?.id,
         sceneTitle: scene?.title,
         imageModel,
-        nextAttempt: attemptNumber + 1,
+        fromAttempt: attemptNumber,
+        toAttempt: attemptNumber + 1,
         maxAttempts,
         delayMs,
+        reason: classifyRetryReason(error),
         diagnosticCode: String(error?.diagnosticCode || ''),
         diagnosticMessage: String(error?.diagnosticMessage || error?.message || ''),
         status: Number(error?.status || 0) || null,
@@ -266,10 +322,14 @@ async function generateSceneImageWithRetries({
 
   // If primary model exhausted retries due to rate limit, try the fallback model once
   if (lastError && fallbackImageModel && fallbackImageModel !== imageModel && isRateLimitError(lastError)) {
-    console.warn('[Storyboarder] Primary model rate-limited, trying fallback model.', {
+    logger.warn('img.regen.fallback_attempt', {
+      regenId,
       sceneId: scene?.id,
+      sceneTitle: scene?.title,
       primaryModel: imageModel,
       fallbackModel: fallbackImageModel,
+      primaryError: String(lastError?.message || ''),
+      primaryDiagnosticCode: String(lastError?.diagnosticCode || ''),
     });
     onRetry?.({
       sceneId: scene?.id,
@@ -285,10 +345,15 @@ async function generateSceneImageWithRetries({
       const imageResult = await generateImageImpl({
         model: fallbackImageModel,
         prompt,
+        regenId,
+        attemptNumber: maxAttempts + 1,
       });
-      console.info('[Storyboarder] Fallback model succeeded.', {
+      logger.info('img.regen.fallback_ok', {
+        regenId,
         sceneId: scene?.id,
+        sceneTitle: scene?.title,
         fallbackModel: fallbackImageModel,
+        latencyMs: imageResult?.latencyMs || null,
       });
       return {
         ...imageResult,
@@ -297,17 +362,39 @@ async function generateSceneImageWithRetries({
         usedFallbackModel: true,
       };
     } catch (fallbackError) {
-      console.error('[Storyboarder] Fallback model also failed.', {
+      logger.error('img.regen.fallback_fail', {
+        regenId,
         sceneId: scene?.id,
+        sceneTitle: scene?.title,
         fallbackModel: fallbackImageModel,
         diagnosticCode: String(fallbackError?.diagnosticCode || ''),
-        message: String(fallbackError?.message || ''),
+        diagnosticMessage: String(fallbackError?.diagnosticMessage || fallbackError?.message || ''),
+        status: Number(fallbackError?.status || 0) || null,
       });
-      // Throw the original error — it's more informative
+      // Fall through — throw the primary error below (it's usually more
+      // informative than "fallback also failed").
     }
   }
 
   throw lastError || new Error('Image generation failed.');
+}
+
+/**
+ * Classify why we're retrying — fed into the img.regen.retry log so a
+ * reader can tell rate-limit runs apart from timeout runs apart from
+ * content-filter bounce runs at a glance.
+ */
+function classifyRetryReason(error) {
+  const status = Number(error?.status || error?.upstreamStatus || 0) || 0;
+  const code = String(error?.diagnosticCode || '').toLowerCase();
+  if (status === 429 || code === 'rate_limited') return 'rate_limited';
+  if (code === 'timeout') return 'timeout';
+  if (code === 'no_image_text_only') return 'content_filter_refusal';
+  if (code === 'no_image_empty_response') return 'empty_response';
+  if (status >= 500) return 'upstream_5xx';
+  if (code === 'transport_error') return 'transport_error';
+  if (code === 'parse_error') return 'parse_error';
+  return 'other';
 }
 
 async function applySuccessfulSceneImage(scene, { imageResult, prompt, promptHash, imageModel }) {
