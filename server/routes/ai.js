@@ -3,6 +3,7 @@
  *
  * POST /api/ai/chat          — streaming chat completion (SSE)
  * POST /api/ai/title         — generate a story title
+ * POST /api/ai/style         — generate a project-level visual style descriptor
  * POST /api/ai/image         — generate an image
  * POST /api/ai/validate-key  — validate a provider API key
  * GET  /api/ai/models        — list available models for a provider
@@ -231,6 +232,75 @@ export async function handleAI(ctx) {
         message: err?.message || String(err),
       });
       return ctx.json({ title: 'Untitled Story', model, provider, requestId });
+    }
+  }
+
+  // POST /api/ai/style — decide the project-level visual style from the first
+  // user prompt. Hard-locked to TITLE_MODEL (cheap/fast) — this is a one-line
+  // output, no reasoning needed. Fails soft to empty string.
+  if (path === '/api/ai/style' && method === 'POST') {
+    const body = await ctx.body();
+    const { userMessage } = body || {};
+    const provider = TITLE_PROVIDER;
+    const model = TITLE_MODEL;
+    const apiKey = await getApiKey(provider);
+    if (!apiKey) {
+      logger.warn('ai.style.missing_key', { requestId, clientRequestId, provider });
+      return ctx.json({ style: '', requestId });
+    }
+
+    const endpoint = PROVIDER_ENDPOINTS[provider];
+    const startedAt = Date.now();
+    logger.info('ai.style.start', {
+      requestId, clientRequestId, provider, model,
+      userMessageChars: String(userMessage || '').length,
+    });
+    try {
+      const upstream = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You pick the visual style for a storyboard. Given a story premise, respond with ONE concrete sentence describing the ideal visual style for every Shot (the medium, line quality, palette, mood). Keep it tight and shootable. Examples:\n' +
+                '- "Monochrome pencil storyboard, rough crosshatching, gritty noir mood, 16:9 letterbox, no text overlays."\n' +
+                '- "Soft watercolor storyboard, muted pastels, whimsical children\'s-book feel, pencil-inked outlines, no text overlays."\n' +
+                '- "Bold ink-and-wash storyboard, saturated primaries, high contrast, anime-inspired lines, no text overlays."\n' +
+                '- "Photoreal cinematic storyboard, desaturated teal-and-orange palette, soft anamorphic bokeh, no text overlays."\n' +
+                'Return ONLY the sentence — no quotes, no preamble, no explanation. Always end with ", no text overlays." so the image model does not render frame numbers or captions.',
+            },
+            { role: 'user', content: userMessage },
+          ],
+        }),
+      });
+      if (!upstream.ok) {
+        const err = await upstream.json().catch(() => ({}));
+        logger.warn('ai.style.upstream_error', {
+          requestId, provider, model, status: upstream.status,
+          upstreamError: err?.error?.message || err,
+        });
+        return ctx.json({ style: '', model, provider, requestId });
+      }
+      const data = await upstream.json();
+      const style = String(data?.choices?.[0]?.message?.content || '').trim();
+      logger.info('ai.style.done', {
+        requestId, provider, model, styleChars: style.length,
+        stylePreview: style.slice(0, 120),
+        durationMs: Date.now() - startedAt,
+      });
+      return ctx.json({ style, model, provider, requestId });
+    } catch (err) {
+      logger.error('ai.style.exception', {
+        requestId, provider, model,
+        message: err?.message || String(err),
+      });
+      return ctx.json({ style: '', model, provider, requestId });
     }
   }
 

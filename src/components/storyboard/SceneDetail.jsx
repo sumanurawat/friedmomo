@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { useLightbox } from '../../store/lightbox-store.js';
+
 const MAX_UPLOAD_MB = 5;
 
 export default function SceneDetail({
@@ -23,6 +25,7 @@ export default function SceneDetail({
   const [newCharacterDescription, setNewCharacterDescription] = useState('');
   const [aiScenePrompt, setAiScenePrompt] = useState('');
   const [aiImagePrompt, setAiImagePrompt] = useState('');
+  const openLightbox = useLightbox((state) => state.open);
 
   const selectedCharacterIds = Array.isArray(scene?.characterIds) ? scene.characterIds : [];
 
@@ -240,7 +243,17 @@ export default function SceneDetail({
             </div>
           ) : scene.imageUrl ? (
             <div className="sb-image-preview">
-              <img src={resolveLocalImage(scene.imageUrl)} alt={scene.title || 'Shot preview'} />
+              <img
+                src={resolveLocalImage(scene.imageUrl)}
+                alt={scene.title || 'Shot preview'}
+                className="sb-scene-thumb-clickable"
+                title="Click to enlarge"
+                onClick={() => openLightbox({
+                  imageUrl: resolveLocalImage(scene.imageUrl),
+                  title: scene.title || 'Shot',
+                  subtitle: [sceneContextLabel, scene.location].filter(Boolean).join(' · '),
+                })}
+              />
               <button
                 type="button"
                 className="sb-scene-delete"

@@ -197,8 +197,9 @@ An **enforcement layer** in `src/store/project-store.js` (`enforceSceneMutationP
 
 | File | Purpose |
 |---|---|
+| [`docs/STORY_STRUCTURE.md`](docs/STORY_STRUCTURE.md) | **Start here.** The Act → Sequence → Shot hierarchy every part of the app runs on. |
 | [`docs/AI_ARCHITECTURE.md`](docs/AI_ARCHITECTURE.md) | End-to-end flow, prompt blocks, the text-modelling layer |
-| [`docs/STORY_TAXONOMY.md`](docs/STORY_TAXONOMY.md) | Why the Act / Scene / Panel vocabulary (3-phase migration plan) |
+| [`docs/STORY_TAXONOMY.md`](docs/STORY_TAXONOMY.md) | Earlier notes on the vocabulary migration (superseded by STORY_STRUCTURE.md) |
 | [`docs/STORY_BUILDING_EXPERIENCE.md`](docs/STORY_BUILDING_EXPERIENCE.md) | Multi-turn story-building test results + brain-upgrade recommendations |
 | [`docs/UX_EXPERIMENT_REPORT.md`](docs/UX_EXPERIMENT_REPORT.md) | Single-turn UX observations on Claude Opus 4.7 |
 | [`docs/TESTING.md`](docs/TESTING.md) | Button-by-button UI test results |

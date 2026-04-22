@@ -259,6 +259,41 @@ export async function generateTitle(userMessage) {
 }
 
 /**
+ * Desktop/Electron parity for the web path's generateStoryStyle — proxies
+ * through /api/ai/style. Fails soft to empty string so the caller can fall
+ * back gracefully. See ai-direct.js for the prompt rationale.
+ */
+export async function generateStoryStyle(userMessage) {
+  const clientRequestId = makeClientRequestId();
+  try {
+    const response = await fetch('/api/ai/style', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Client-Request-Id': clientRequestId,
+      },
+      body: JSON.stringify({ userMessage }),
+    });
+    if (!response.ok) {
+      logger.warn('ai.style.error', { clientRequestId, status: response.status });
+      return '';
+    }
+    const data = await response.json();
+    const style = String(data?.style || '').trim();
+    logger.info('ai.style.done', {
+      clientRequestId,
+      serverRequestId: response.headers.get('X-Request-Id'),
+      model: data?.model,
+      styleChars: style.length,
+    });
+    return style;
+  } catch (err) {
+    logger.error('ai.style.exception', { clientRequestId, message: err?.message });
+    return '';
+  }
+}
+
+/**
  * Generate an image via the backend proxy.
  */
 export async function generateImage({ prompt, model, regenId, attemptNumber }) {

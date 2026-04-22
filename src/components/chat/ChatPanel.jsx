@@ -12,13 +12,17 @@ const PHASE_PILL_LABEL = {
   planning: 'Planning',
   drafting: 'Drafting',
   outline: 'Outline',
-  scenes_add: 'Scenes',
+  // "scenes_add" is the phase emitted when the planner is writing JSON
+  // `sequences_add` (layer 2) — that's Sequences in user vocabulary.
+  scenes_add: 'Sequences',
   characters_add: 'Cast',
   characters_update: 'Cast',
   locations_add: 'World',
   locations_update: 'World',
-  panels_add: 'Panels',
-  panels_update: 'Panels',
+  // "panels_add" is the phase emitted when the planner is writing JSON
+  // `scenes_add` (layer 3) — that's Shots in user vocabulary.
+  panels_add: 'Shots',
+  panels_update: 'Shots',
   rendering: 'Rendering',
 };
 

@@ -120,6 +120,14 @@
  * @property {string} id
  * @property {string} userId
  * @property {string} name
+ * @property {string} storyStyle       A single concrete sentence describing the
+ *                                     visual style of every Shot rendered for
+ *                                     this story (medium, tone, palette, line
+ *                                     quality). Auto-drafted on the first turn
+ *                                     by a small model, user-editable via the
+ *                                     badge next to the List/Grid toggle. Echoed
+ *                                     verbatim into every image prompt so the
+ *                                     whole board reads as one piece.
  * @property {string} createdAt
  * @property {string} updatedAt
  * @property {ChatMessage[]} messages
@@ -183,6 +191,9 @@ export function createProject(name, userId = 'local_user') {
     id: `proj_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     userId,
     name: name || 'Untitled Story',
+    // Empty until the first real user prompt — generateStoryStyle() fills it
+    // from the prompt alongside the title. See project-store.sendMessage().
+    storyStyle: '',
     createdAt: now,
     updatedAt: now,
     messages: [
@@ -333,6 +344,9 @@ export function createSeedProject(name, userId = 'local_user') {
     id,
     userId,
     name: name || '🎬 Demo Story',
+    // Demo project pre-seeds a concrete style so every Shot renders with a
+    // coherent look without requiring the user to run a real first-turn.
+    storyStyle: 'Cinematic storyboard, high-contrast ink-and-wash, moody rain-noir palette, loose confident linework, 16:9 letterbox, no text overlays.',
     createdAt: now,
     updatedAt: now,
     messages: [

@@ -715,6 +715,8 @@ export default function App() {
   const storyboardProps = {
     storyboard: activeProject?.storyboard,
     entities: activeProject?.entities,
+    storyStyle: activeProject?.storyStyle || '',
+    onUpdateStoryStyle: (nextStyle) => projectStore.setStoryStyle(nextStyle),
     selectedSceneId: projectStore.selectedSceneId,
     onSelectScene: handleSelectScene,
     onDeleteScene: handleDeleteScene,

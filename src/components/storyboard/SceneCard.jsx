@@ -1,3 +1,5 @@
+import { useLightbox } from '../../store/lightbox-store.js';
+
 export default function SceneCard({
   scene,
   actColor,
@@ -15,6 +17,21 @@ export default function SceneCard({
   onDragOverAt,
   compact = false,
 }) {
+  const openLightbox = useLightbox((state) => state.open);
+
+  // Handler shared by both compact + full thumbnail img tags. We stop
+  // propagation so clicking the image doesn't also trigger the outer
+  // card's onSelect — opening the lightbox is its own intent, distinct
+  // from selecting the shot for inspector editing.
+  const handleThumbClick = (event) => {
+    event.stopPropagation();
+    if (!scene.imageUrl) return;
+    openLightbox({
+      imageUrl: resolveLocalImage(scene.imageUrl),
+      title: scene.title || 'Shot',
+      subtitle: [sequenceLabel, scene.location].filter(Boolean).join(' · '),
+    });
+  };
   const toneLabel = diffType === 'added' ? 'New' : diffType === 'updated' ? 'Updated' : '';
   const characters = Array.isArray(characterNames) ? characterNames : [];
   const firstCharacters = characters.slice(0, 2);
@@ -83,10 +100,12 @@ export default function SceneCard({
               </div>
             ) : scene.imageUrl ? (
               <img
-                className="sb-scene-thumb-media"
+                className="sb-scene-thumb-media sb-scene-thumb-clickable"
                 src={resolveLocalImage(scene.imageUrl)}
                 alt={`${scene.title} storyboard shot`}
                 loading="lazy"
+                title="Click to enlarge"
+                onClick={handleThumbClick}
               />
             ) : (
               <button
@@ -175,10 +194,12 @@ export default function SceneCard({
                   </div>
                 ) : scene.imageUrl ? (
                   <img
-                    className="sb-scene-thumb-media"
+                    className="sb-scene-thumb-media sb-scene-thumb-clickable"
                     src={resolveLocalImage(scene.imageUrl)}
                     alt={`${scene.title} storyboard shot`}
                     loading="lazy"
+                    title="Click to enlarge"
+                    onClick={handleThumbClick}
                   />
                 ) : (
                   <button

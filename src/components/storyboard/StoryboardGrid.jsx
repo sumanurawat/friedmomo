@@ -1,10 +1,13 @@
 import { useState } from 'react';
 
 import ActRow from './ActRow.jsx';
+import StoryStyleBadge from './StoryStyleBadge.jsx';
 
 export default function StoryboardGrid({
   storyboard,
   entities,
+  storyStyle,
+  onUpdateStoryStyle,
   selectedSceneId,
   onSelectScene,
   onDeleteScene,
@@ -75,9 +78,13 @@ export default function StoryboardGrid({
       <header className="sb-section-head">
         <h2>Storyboard</h2>
         <div className="sb-row">
-          <p>
-            {filledSequences}/{totalSequences} scenes filled
+          <p title="Each Sequence holds one Shot. Count of Sequences with a Shot drafted.">
+            {filledSequences}/{totalSequences} sequences covered
           </p>
+          <StoryStyleBadge
+            storyStyle={storyStyle}
+            onUpdate={onUpdateStoryStyle}
+          />
           <div className="sb-view-toggle" role="tablist" aria-label="Storyboard view">
             <button
               type="button"

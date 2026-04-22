@@ -51,7 +51,12 @@ export async function regenerateSceneImages(project, options = {}) {
       }
     }
 
-    const prompt = buildSceneImagePrompt(scene, nextProject.entities, nextProject.storyboard);
+    const prompt = buildSceneImagePrompt(
+      scene,
+      nextProject.entities,
+      nextProject.storyboard,
+      nextProject.storyStyle
+    );
     if (!prompt) {
       continue;
     }
@@ -603,8 +608,8 @@ function collectScenes(storyboard) {
   return all;
 }
 
-export function buildSceneImagePrompt(scene, entities, storyboard) {
-  const input = buildSceneImageInput(scene, entities, storyboard);
+export function buildSceneImagePrompt(scene, entities, storyboard, storyStyle) {
+  const input = buildSceneImageInput(scene, entities, storyboard, storyStyle);
   if (!input) {
     return '';
   }
@@ -612,7 +617,7 @@ export function buildSceneImagePrompt(scene, entities, storyboard) {
   return renderSceneImagePrompt(input);
 }
 
-function buildSceneImageInput(scene, entities, storyboard) {
+function buildSceneImageInput(scene, entities, storyboard, storyStyle) {
   const sceneContext = resolveSceneContext(storyboard, scene);
   const shotTitle = clipText(scene?.title, 90);
   const location = clipText(scene?.location, 120);
@@ -704,6 +709,11 @@ function buildSceneImageInput(scene, entities, storyboard) {
     continuityNotes,
     characterVisuals,
     locationVisuals,
+    // Project-level style descriptor — echoed verbatim at the top of every
+    // Shot's prompt so the whole board reads as one piece. Auto-drafted on
+    // the first turn by generateStoryStyle(); user-editable in the UI.
+    // Trimmed to 220 chars so it fits alongside the per-shot directives.
+    storyStyle: clipText(storyStyle || '', 220),
     styleDirectives: [
       visualMedium,
       'director blocking reference',
@@ -714,7 +724,6 @@ function buildSceneImageInput(scene, entities, storyboard) {
       'landmark and prop emphasis',
       'believable anatomy',
       'cinematic lighting',
-      'no text',
       '16:9',
     ],
   };
@@ -753,9 +762,27 @@ function renderSceneImagePrompt(input) {
 function renderSceneImagePromptWithCaps(input, caps) {
   const lines = [
     'Create one cinematic storyboard frame that matches the established project continuity.',
-    `Medium: ${clipText(input.visualMedium, 70)}`,
-    'Emphasize framing, blocking, landmark geography, key props, and the main focal point.',
   ];
+
+  // Hard anti-text constraint — leads the prompt so the image model gets it
+  // before any per-shot content that might tempt text rendering (titles,
+  // "FRAME 001"-style slates, action labels). Gemini 3.1 Image in particular
+  // loves to render margin annotations unless explicitly told not to.
+  lines.push(
+    'PURE VISUAL ONLY. No text overlays, no captions, no frame numbers, no labels, no handwritten notes, no margin annotations, no UI chrome — render only the photographed/drawn content inside the 16:9 frame. Any metadata lives in the app UI, not on the image.'
+  );
+
+  // Project-level visual style — leads so it dominates medium/palette
+  // decisions. Injected verbatim from Project.storyStyle (set by
+  // generateStoryStyle on first turn, editable via the UI badge).
+  if (input.storyStyle) {
+    lines.push(`Project visual style (apply to every Shot): ${input.storyStyle}`);
+  }
+
+  lines.push(
+    `Medium: ${clipText(input.visualMedium, 70)}`,
+    'Emphasize framing, blocking, landmark geography, key props, and the main focal point.'
+  );
   const shotTitle = clipText(input.shotTitle, 80);
   const location = clipText(input.location, 90);
   const time = clipText(input.time, 28);

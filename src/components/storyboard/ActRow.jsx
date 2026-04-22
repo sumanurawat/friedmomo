@@ -133,7 +133,7 @@ export default function ActRow({
           }}
         >
           <div className="sb-act-color" style={{ background: color }} />
-          <h4>{`Sequence ${act.number}:`}</h4>
+          <h4>{`Act ${act.number}:`}</h4>
           <input
             key={`act-title-${act.number}-${act.title}`}
             className="sb-act-title-input"
@@ -148,19 +148,19 @@ export default function ActRow({
                 event.currentTarget.blur();
               }
             }}
-            aria-label={`Sequence ${act.number} title`}
+            aria-label={`Act ${act.number} title`}
           />
           <small>{countActScenes(sequences)} shots</small>
         </div>
 
         <div className="sb-act-actions">
           <IconButton
-            title={collapsed ? 'Expand sequence' : 'Minimize sequence'}
+            title={collapsed ? 'Expand act' : 'Minimize act'}
             onClick={() => onToggleCollapsed?.()}
           >
             <ExpandCollapseIcon collapsed={collapsed} />
           </IconButton>
-          <IconButton danger title="Delete sequence" onClick={() => onDeleteAct?.()}>
+          <IconButton danger title="Delete act" onClick={() => onDeleteAct?.()}>
             <TrashIcon />
           </IconButton>
         </div>
@@ -288,14 +288,14 @@ export default function ActRow({
                             event.currentTarget.blur();
                           }
                         }}
-                        aria-label={`Scene ${sequence.number} title`}
+                        aria-label={`Sequence ${sequence.number} title`}
                       />
                     </div>
                   </div>
 
                   <div className="sb-sequence-actions">
                     <IconButton
-                      title={isCollapsed ? 'Expand scene' : 'Minimize scene'}
+                      title={isCollapsed ? 'Expand sequence' : 'Minimize sequence'}
                       onClick={() => toggleSequenceCollapsed(sequence.number)}
                     >
                       <ExpandCollapseIcon collapsed={isCollapsed} />
@@ -454,7 +454,7 @@ function SectionComposer({
     <section className="sb-composer">
       <header className="sb-composer-head">
         <strong>
-          Sequence {actNumber}, Scene {sequence.number}
+          Act {actNumber}, Sequence {sequence.number}
         </strong>
         <button type="button" className="sb-btn sb-btn-xs" onClick={onClose}>
           Close

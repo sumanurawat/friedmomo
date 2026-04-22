@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { sendMessage, generateTitle } from '../services/ai-client.js';
+import { sendMessage, generateTitle, generateStoryStyle } from '../services/ai-client.js';
 
 import {
   applyUpdates,
@@ -271,7 +271,7 @@ function buildScenePreview(project, preferredSceneIds = []) {
       sceneId: scene.id,
       sceneNumber: scene.sceneNumber,
       title: String(scene.title || '').trim() || 'Untitled Shot',
-      contextLabel: `Sequence ${lookup.act.number} / Scene ${lookup.sequence.number}`,
+      contextLabel: `Act ${lookup.act.number} / Sequence ${lookup.sequence.number}`,
       location: String(scene.location || '').trim(),
       mood: String(scene.mood || '').trim(),
       storyFunction: String(scene.storyFunction || '').trim(),
@@ -1629,6 +1629,30 @@ export const useProjectStore = create((set, get) => ({
     await get().refreshProjectIndex();
   },
 
+  /**
+   * Update the project-level visual style descriptor. Called automatically by
+   * generateStoryStyle() on the first user prompt, and manually by the user
+   * via the StoryStyleBadge next to the List/Grid toggle. Persisted to
+   * IndexedDB/disk the same way as name/updatedAt. No-op if the project is
+   * missing or the style is unchanged (avoids a redundant write).
+   */
+  setStoryStyle: async (style) => {
+    const activeProject = get().activeProject;
+    if (!activeProject) return;
+    const clean = String(style || '').trim();
+    if (String(activeProject.storyStyle || '').trim() === clean) return;
+
+    const nextProject = {
+      ...activeProject,
+      storyStyle: clean,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await saveProject(nextProject);
+    set({ activeProject: nextProject });
+    await get().refreshProjectIndex();
+  },
+
   renameProjectById: async (projectId, name) => {
     const targetId = String(projectId || '').trim();
     const clean = String(name || '').trim();
@@ -1839,8 +1863,15 @@ export const useProjectStore = create((set, get) => ({
       !activeProject.messages.some((m) => m.role === 'user');
 
     if (isFirstUserMessage) {
+      // Fire title + style in parallel — both use the cheap TITLE_MODEL and
+      // don't block the main chat stream. If either fails we fall back to
+      // defaults (empty storyStyle means the image prompt uses its generic
+      // fallback directive).
       generateTitle(visibleContent)
         .then((title) => { if (title) get().renameActiveProject(title); })
+        .catch(() => { });
+      generateStoryStyle(visibleContent)
+        .then((style) => { if (style) get().setStoryStyle(style); })
         .catch(() => { });
     }
 
@@ -2201,16 +2232,16 @@ export const useProjectStore = create((set, get) => ({
     }
 
     const list = missing
-      .map((item) => `Sequence ${item.actNumber}, Scene ${item.number} (${item.title})`)
+      .map((item) => `Act ${item.actNumber}, Sequence ${item.number} (${item.title})`)
       .join(', ');
 
     const instruction = [
       'Expand this into a fuller storyboard draft.',
-      `Fill missing scenes: ${list}.`,
-      'For each missing scene add at least one concise shot with title, location, time, visualDescription, action, mood, storyFunction, characterIds, and locationIds.',
-      'Terminology mapping: `act` = Sequence, `sequence` = Scene, each `scenes_add` item = Shot.',
-      'Keep continuity with existing shots and entities.',
-      'Do not rewrite existing shots unless needed for continuity.',
+      `Fill missing Sequences: ${list}.`,
+      'For each missing Sequence add exactly one Shot with title, location, time, visualDescription, action, mood, storyFunction, characterIds, and locationIds.',
+      'Terminology mapping: JSON key `act` = Act (layer 1), `sequence` = Sequence (layer 2), each `scenes_add` item = Shot (layer 3).',
+      'Keep continuity with existing Shots and entities.',
+      'Do not rewrite existing Shots unless needed for continuity.',
     ].join(' ');
 
     await get().sendUserMessage(instruction, { isSystem: true });

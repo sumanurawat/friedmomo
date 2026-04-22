@@ -2,6 +2,7 @@ import ChatPanel from '../chat/ChatPanel.jsx';
 import EntityPanel from '../sidebar/EntityPanel.jsx';
 import ProjectList from '../sidebar/ProjectList.jsx';
 import SceneDetail from '../storyboard/SceneDetail.jsx';
+import ShotImageLightbox from '../storyboard/ShotImageLightbox.jsx';
 import StoryboardGrid from '../storyboard/StoryboardGrid.jsx';
 
 export default function AppLayout({
@@ -33,15 +34,15 @@ export default function AppLayout({
         </div>
 
         <div className="sb-topbar-stats">
-          <article>
+          <article title="Shots — one drawn frame per Sequence">
             <strong>{stats.scenes}</strong>
-            <span>Scenes</span>
+            <span>Shots</span>
           </article>
-          <article>
+          <article title="Characters — reusable visual anchors">
             <strong>{stats.characters}</strong>
             <span>Characters</span>
           </article>
-          <article>
+          <article title="Locations — reusable world anchors">
             <strong>{stats.locations}</strong>
             <span>Locations</span>
           </article>
@@ -139,6 +140,11 @@ export default function AppLayout({
           </aside>
         </div>
       ) : null}
+
+      {/* Full-size image overlay — subscribes to useLightbox store, so any
+          shot thumbnail anywhere in the tree can pop it open without prop
+          threading. Renders a portal to document.body. */}
+      <ShotImageLightbox />
     </main>
   );
 }

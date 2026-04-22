@@ -396,6 +396,142 @@
   background: rgba(251, 191, 36, 0.14);
 }
 
+/* Story-style badge — sits next to the List/Grid toggle. Shows a truncated
+   preview of the project-level visual style descriptor (set by
+   generateStoryStyle on the first turn; user-editable). Click to open the
+   inline editor below it. */
+.sb-style-badge-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.sb-style-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  max-width: 260px;
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem 0.3rem 0.55rem;
+  background: rgba(167, 139, 250, 0.1);
+  color: var(--sb-text);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.sb-style-badge:hover,
+.sb-style-badge[aria-expanded='true'] {
+  background: rgba(167, 139, 250, 0.18);
+  border-color: rgba(167, 139, 250, 0.65);
+}
+
+.sb-style-badge.empty {
+  border-style: dashed;
+  color: var(--sb-muted);
+}
+
+.sb-style-badge-dot {
+  flex: 0 0 auto;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #a78bfa;
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.22);
+}
+
+.sb-style-badge.empty .sb-style-badge-dot {
+  background: rgba(167, 139, 250, 0.4);
+  box-shadow: none;
+}
+
+.sb-style-badge-label {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.58rem;
+  color: #ddd6fe;
+}
+
+.sb-style-badge.empty .sb-style-badge-label {
+  color: var(--sb-muted);
+}
+
+.sb-style-badge-preview {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+/* Inline editor that drops down from the badge. Anchored relative to the
+   .sb-style-badge-wrap, stacks above any surrounding controls via z-index. */
+.sb-style-editor {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  left: 0;
+  z-index: 5;
+  width: min(440px, 90vw);
+  padding: 0.85rem 0.95rem 0.7rem;
+  border: 1px solid rgba(167, 139, 250, 0.55);
+  border-radius: 12px;
+  background: var(--sb-panel-bg, #141a28);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sb-style-editor label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #c4b5fd;
+  font-weight: 700;
+}
+
+.sb-style-editor textarea {
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+  border: 1px solid var(--sb-border);
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--sb-text);
+  font-family: inherit;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.sb-style-editor textarea:focus {
+  outline: none;
+  border-color: rgba(167, 139, 250, 0.7);
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.18);
+}
+
+.sb-style-editor-hint {
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: var(--sb-muted);
+}
+
+.sb-style-editor-hint code {
+  background: rgba(167, 139, 250, 0.14);
+  border-radius: 4px;
+  padding: 0 0.28em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.86em;
+}
+
+.sb-style-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+}
+
 .sb-board-acts {
   display: grid;
   gap: 0.58rem;
@@ -1724,6 +1860,111 @@
   top: 8px;
   right: 8px;
   background: rgba(255, 255, 255, 0.9);
+}
+
+/* Click-to-enlarge affordance on any shot thumbnail — shot cards + inspector
+   image. Cursor zoom-in tells the user it's interactive; subtle brightness
+   bump on hover confirms. */
+.sb-scene-thumb-clickable {
+  cursor: zoom-in;
+  transition: filter 140ms ease, transform 140ms ease;
+}
+
+.sb-scene-thumb-clickable:hover {
+  filter: brightness(1.04);
+}
+
+/* Full-screen lightbox overlay — mounts once in AppLayout, subscribes to
+   useLightbox store. Backdrop closes on click; close button and Esc are
+   additional escape hatches. */
+.sb-lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem;
+  background: rgba(8, 10, 18, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: sb-lightbox-fade 160ms ease-out;
+  cursor: zoom-out;
+}
+
+@keyframes sb-lightbox-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.sb-lightbox-figure {
+  margin: 0;
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  cursor: default;
+}
+
+.sb-lightbox-image {
+  max-width: 100%;
+  max-height: calc(100vh - 8rem);
+  border-radius: 10px;
+  box-shadow: 0 28px 68px rgba(0, 0, 0, 0.6);
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.sb-lightbox-caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  color: #e5e7eb;
+  text-align: center;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 80ch;
+}
+
+.sb-lightbox-caption strong {
+  font-size: 1rem;
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.sb-lightbox-caption span {
+  color: #94a3b8;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
+.sb-lightbox-close {
+  position: absolute;
+  top: 1.1rem;
+  right: 1.1rem;
+  z-index: 1;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.sb-lightbox-close:hover {
+  background: rgba(30, 41, 59, 0.92);
+  border-color: rgba(255, 255, 255, 0.45);
 }
 
 .sb-image-meta {

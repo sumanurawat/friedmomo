@@ -271,6 +271,63 @@ export async function sendMessage({ model, systemPrompt, messages, onToken, onDo
 }
 
 /**
+ * Cheap one-shot: decide the visual style for this whole story from the first
+ * user prompt. Returns a single concrete sentence (medium + palette + line
+ * quality + mood) that's stored on the Project and echoed verbatim into every
+ * image prompt so the whole board reads as one piece.
+ *
+ * Uses the same cheap TITLE_MODEL — this is a 1-sentence output, no reasoning
+ * required. Fails soft: returns '' so the caller can fall back to a default.
+ */
+export async function generateStoryStyle(userMessage) {
+  const clientRequestId = makeClientRequestId();
+  const apiKey = getApiKey('openrouter');
+  if (!apiKey) {
+    logger.warn('ai.style.missing_key', { clientRequestId });
+    return '';
+  }
+
+  try {
+    const response = await fetch(OPENROUTER_CHAT_URL, {
+      method: 'POST',
+      headers: openRouterHeaders(apiKey),
+      body: JSON.stringify({
+        model: TITLE_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You pick the visual style for a storyboard. Given a story premise, respond with ONE concrete sentence describing the ideal visual style for every Shot (the medium, line quality, palette, mood). Keep it tight and shootable. Examples:\n' +
+              '- "Monochrome pencil storyboard, rough crosshatching, gritty noir mood, 16:9 letterbox, no text overlays."\n' +
+              '- "Soft watercolor storyboard, muted pastels, whimsical children\'s-book feel, pencil-inked outlines, no text overlays."\n' +
+              '- "Bold ink-and-wash storyboard, saturated primaries, high contrast, anime-inspired lines, no text overlays."\n' +
+              '- "Photoreal cinematic storyboard, desaturated teal-and-orange palette, soft anamorphic bokeh, no text overlays."\n' +
+              'Return ONLY the sentence — no quotes, no preamble, no explanation. Always end with ", no text overlays." so the image model does not render frame numbers or captions.',
+          },
+          { role: 'user', content: userMessage },
+        ],
+      }),
+    });
+    if (!response.ok) {
+      logger.warn('ai.style.error', { clientRequestId, status: response.status });
+      return '';
+    }
+    const data = await response.json();
+    const style = String(data?.choices?.[0]?.message?.content || '').trim();
+    logger.info('ai.style.done', {
+      clientRequestId,
+      model: TITLE_MODEL,
+      styleChars: style.length,
+      stylePreview: style.slice(0, 120),
+    });
+    return style;
+  } catch (err) {
+    logger.error('ai.style.exception', { clientRequestId, message: err?.message });
+    return '';
+  }
+}
+
+/**
  * Cheap title generation — always uses the locked TITLE_MODEL.
  */
 export async function generateTitle(userMessage) {
