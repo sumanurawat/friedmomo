@@ -3979,6 +3979,25 @@ select:focus-visible {
   color: #1a2030;
 }
 
+/* Topbar icon glyphs — Lucide-style SVGs in the theme + settings buttons.
+   stroke + currentColor lets them inherit the button's hover colour for
+   free. Replaces the old Unicode glyphs (☀ / ☽ / ⚙) which rendered with
+   a different font from the rest of the UI and looked off. */
+.sb-topbar-icon {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sb-theme-btn .sb-topbar-icon {
+  width: 16px;
+  height: 16px;
+}
+
 /* =========================================================
    COMIC-BOOK THEME OVERRIDES (inspired by Plant Care mockup)
    Pure look-and-feel; no JSX / handler changes.
